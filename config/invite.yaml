@@ -1,0 +1,100 @@
+# Conteúdo do convite — edite este arquivo para gerar variações.
+# Estrutura (arquitetura visual, dimensões, fontes) está em layout.yaml.
+
+couple:
+  bride: "Luany"
+  groom: "João Marcos"
+
+verse:
+  text: '"Nós amamos porque Ele nos amou primeiro."'
+  reference: "João 4:19"
+
+# Bênção dos pais — bloco "COM A BENÇÃO DE DEUS E DE SEUS PAIS"
+parents:
+  blessing_text: "COM A BENÇÃO DE DEUS E DE SEUS PAIS"
+  bride:
+    - "LUIZ GONZAGA TAVARRES"
+    - "DINALVA SILVA ROZETE TAVARES"
+  groom:
+    - "MARCOS ANTÔNIO HENRIQUES TEIXEIRA"
+    - "ROSÂNGELA OLIVEIRA DE SOUSA TEIXEIRA"
+
+wedding_date: 2026-10-10
+
+ceremony:
+  venue: "Paróquia Nossa Senhora do Rosário"
+  address: "R. Tenenente Luís Ribeiro, 230"
+  time: "17:00"
+  bridal_party_arrival: "16:30"
+  invitation_text: "CONVIDAM PARA A CELEBRAÇÃO DE SEU CASAMENTO"
+
+reception:
+  venue: "Espaço de Festas Manto Verde"
+  address: "Av. Sizenando Dutra de Siqueira, 1461"
+
+rsvp:
+  intro: "CONFIRMAÇÃO DE PRESENÇA E LISTA DE PRESENTES, ACESSE NOSSO SITE OU CERIMONIALISTA:"
+  url: "https://noivos.casar.com/luany-e-joao-2026-10-10"
+  phone: "(32) 9 9969-5061"
+
+save_the_date:
+  month: 10
+  year: 2026
+  highlighted_day: 10
+
+# Conteúdo dos manuais (padrinhos e madrinhas).
+# active_text: índice (0-based) de qual sugestão usar (0 = primeira).
+manuals:
+  madrinhas:
+    active_text: 1
+    text_suggestions:
+      - "A cor escolhida para os vestidos é o Marsala, e teremos uma paleta de tons para inspirar vocês. Sintam-se à vontade para selecionar o modelo que mais as agrada e que as faça sentir lindas."
+      - "Desejamos que se sintam radiantes e lindas em nosso grande dia! Por isso, a escolha do modelo do vestido é totalmente sua, permitindo que sua personalidade brilhe. Pedimos apenas que o vestido seja na cor Marsala. Então escolha um vestido que você se sinta bem, dentro dessa paleta de cores:"
+  padrinhos:
+    active_text: 0
+    text_suggestions:
+      - "Para que você fique ainda mais elegante, pedimos que usem terno Cinza Médio com camisa Branca. E para dar aquele toque especial e combinar com a nossa paleta, a gravata será na cor Marsala. Contamos com vocês para abrilhantar ainda mais este dia tão esperado!"
+
+  # Seção "Dicas para o grande dia" — usada nos manuais.
+  # Cada item: [icon_name, texto]. icon_name = nome do SVG em assets/ornaments/icons/.
+  dicas:
+    title: "Dicas para o grande dia:"
+    items:
+      - icon: clock
+        text: "Pedimos que chegue com 30 minutos de antecedência. A cerimônia está marcada para às 17h00, gentileza chegar às 16h30. Não podemos nos atrasar, ok?"
+      - icon: camera
+        text: "Tire muitas fotos e nos ajude a eternizar esse momento."
+      - icon: glass
+        text: "Divirta-se muito!"
+
+  # Bloco "Sua Missão" — uma página completa pra dedicar aos padrinhos/madrinhas.
+  # Renderiza num painel com: título + corpo + coração + verso bíblico.
+  sua_missao:
+    title: "Sua Missão"
+    body: |
+      Orar, abençoar, aconselhar, acompanhar, incentivar, cuidar, alegrar, amar e dar testemunho da nossa união e do nosso amor perante Deus!
+
+      Temos certeza que foi Ele que nos colocou na vida de vocês.
+
+      Por isso, estamos felizes por aceitarem fazer parte de um dos dias mais importantes de nossas vidas.
+    verse:
+      text: '"E acima de tudo tenham amor, pois amor une perfeitamente todas as coisas"'
+      reference: "Colossenses 3:14"
+
+  # Frase bíblica genérica (mantida pra quando precisar de algo isolado).
+  bible_verse_extra:
+    text: "E acima de tudo tenham amor, pois amor une perfeitamente todas as coisas."
+    reference: "Colossenses 3:14"
+
+madrinha:
+  title: "Madrinha"
+  body: |
+    Queremos que se sinta linda e confortável neste dia tão especial.
+    Sua presença ao nosso lado torna esta celebração ainda mais significativa.
+  # Paleta marsala das madrinhas — 5 tons (claro a escuro)
+  palette:
+    - "#BB8B85"  # marsala claro / blush
+    - "#A67370"  # marsala suave
+    - "#964F4C"  # marsala (Pantone)
+    - "#7E3F3D"  # marsala profundo
+    - "#5C2A2A"  # marsala escuro / burgundy
