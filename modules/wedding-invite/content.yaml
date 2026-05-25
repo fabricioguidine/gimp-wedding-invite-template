@@ -1,0 +1,50 @@
+# wedding-invite — text content.
+#
+# All strings are English placeholders with letter counts close to the
+# Portuguese original from the reference PDF. The point: when the bride and
+# groom plug in their real (Portuguese) names + venues, the layout doesn't
+# shift much because line widths stay comparable.
+#
+# If a replacement string is significantly longer/shorter, you'll see text
+# clip into the gold border or leave awkward whitespace — adjust here, not
+# in the .py.
+
+verse:
+  text: '"We love because He has first loved us today."'    # ~46 chars (PT: 40)
+  reference: "John 4:19"                                    # 9 chars
+
+blessing: "WITH GOD'S BLESSING AND THEIR DEAR PARENTS"      # 42 chars (PT: 35)
+
+parents:
+  # 2-column block: left = bride's parents, right = groom's parents.
+  bride:
+    - "ALEX JOHNATHAN SMITHE"                               # 21 (PT: 21)
+    - "MELANIE ASHWORTH DELAINE NORTH"                      # 30 (PT: 28)
+  groom:
+    - "BENJAMIN ALEXANDER WHITESTONE JR"                    # 32 (PT: 33)
+    - "ELIZABETH MARGARET WHITESTONE NORTH"                 # 35 (PT: 36)
+
+couple:
+  bride: "Emily"          # PT: "Luany" (5 chars)
+  groom: "James Thomas"   # PT: "João Marcos" (11 chars)
+
+invitation: "INVITE YOU TO THE CELEBRATION OF THEIR WEDDING"   # 46 (PT: 43)
+
+day: "Sunday"             # 6 chars, same as PT "Sábado"
+date:
+  day: 10
+  month_name: "October"   # PT: "Outubro" — same length-ish
+  year: 2026
+
+ceremony:
+  time: "At 5:30 PM hour"                                   # 15 (PT: 14)
+  venue: "Our Lady of the Rosary Parish Church"             # 37 (PT: 33)
+  address: "123 Sample Avenue, Suite 230"                   # 28 (PT: 30)
+
+reception:
+  venue: "Reception at the Green Manor Estate Hall"         # 40 (PT: 40)
+  address: "1461 North Sample Boulevard, Building B"        # 39 (PT: 37)
+
+rsvp:
+  intro: "RSVP AND GIFT REGISTRY, VISIT OUR WEBSITE OR THE WEDDING PLANNER:"
+  detail: "https://wedding.example.com/emily-and-james-2026-10-10 — (32) 9 9969-5061"

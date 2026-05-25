@@ -1,7 +1,18 @@
 # GIMP
 *.xcf~
 *.xcf.bak
+
+# Legacy output dir (replaced by modules/*/outputs/)
 output/
+
+# Per-module runtime artefacts and user-supplied inputs.
+# template/ is committed (the canonical English placeholder example);
+# everything under outputs/ and inputs/ is per-run / user-local.
+modules/*/outputs/*
+!modules/*/outputs/.gitkeep
+!modules/*/outputs/.gitignore
+modules/*/inputs/*
+!modules/*/inputs/.gitkeep
 
 # Python
 __pycache__/

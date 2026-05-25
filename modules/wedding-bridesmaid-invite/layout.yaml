@@ -1,0 +1,93 @@
+# wedding-bridesmaid-invite — visual structure (tri-fold leaflet, 2 sides).
+# Z-fold / sanfona; panels left-to-right when open are:
+#   back_cover  |  middle (calendar / role)  |  front_cover
+
+canvas:
+  width_px: 3543      # ~30cm @ 300 DPI
+  height_px: 1772     # ~15cm @ 300 DPI
+  dpi: 300
+  background_color: "#F5EDE0"
+
+# Olive gold — same color as the wedding-invite module to match the suite.
+text_color: "#9C7E3E"
+
+fold:
+  type: "sanfona"
+  panel_order:
+    - back_cover
+    - middle
+    - front_cover
+  guides_vertical_pct:
+    - 33.3333
+    - 66.6666
+
+borders:
+  stroke_width_px: 2
+  inner_margin_px: 118
+  color: "#9C7E3E"
+  raster: true
+  as_paths: true
+
+fonts:
+  script:
+    family: "Cormorant Garamond Italic"
+    fallback: "Georgia Italic"
+  script_bold:
+    family: "Cormorant Garamond Bold Italic"
+    fallback: "Georgia Bold Italic"
+  serif:
+    family: "Cormorant Garamond Regular"
+    fallback: "Georgia"
+  bold:
+    family: "Cormorant Garamond Bold"
+    fallback: "Georgia Bold"
+
+# External side (visible when folded) — front_cover faces out, back_cover wraps.
+externo:
+  front_cover:                # title + couple subtitle
+    title_size_px: 140
+    title_top_padding_px: 80
+    subtitle_size_px: 100
+    subtitle_y_factor: 0.78
+  middle:                     # calendar + ceremony info
+    weekday_size_px: 70
+    date_size_px: 42
+    arrival_size_px: 36
+    venue_size_px: 36
+    address_size_px: 32
+    calendar:
+      cell_size_px: 80
+      header_size_px: 36
+      day_size_px: 40
+      highlight_radius_px: 36
+      highlight_stroke_px: 3
+      weekday_labels: ["S", "M", "T", "W", "T", "F", "S"]   # English Sun-Sat
+  back_cover:                 # logo (or empty if no logo asset)
+    logo_padding_px: 50
+
+# Internal side (after unfolding) — three panels of content.
+interno:
+  back_cover:                 # "Your Mission" block
+    title_size_px: 100
+    body_size_px: 38
+    body_wrap_chars: 24
+    verse_size_px: 40
+    verse_wrap_chars: 26
+    ref_size_px: 28
+  middle:                     # role title + body + palette + color names
+    role_title_size_px: 140
+    body_size_px: 42
+    body_wrap_chars: 24
+    palette_subtitle_size_px: 50
+    color_label_size_px: 40
+    palette:
+      circle_radius_px: 60
+      circle_spacing_px: 70
+  front_cover:                # tips block ("Tips for the big day")
+    title_size_px: 100
+    body_size_px: 42
+    icon_size_px: 130
+
+background_image:
+  opacity_pct: 18
+  scale_mode: "cover"

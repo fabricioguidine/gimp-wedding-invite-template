@@ -1,0 +1,98 @@
+# wedding-couple-invite — visual structure (tri-fold, 2 sides).
+# The interno middle panel uses a SPLIT layout — groomsman section + bridesmaid
+# section stacked vertically — instead of the single-role layout used by the
+# bridesmaid / groomsman modules.
+
+canvas:
+  width_px: 3543
+  height_px: 1772
+  dpi: 300
+  background_color: "#F5EDE0"
+
+text_color: "#9C7E3E"
+
+fold:
+  type: "sanfona"
+  panel_order:
+    - back_cover
+    - middle
+    - front_cover
+  guides_vertical_pct:
+    - 33.3333
+    - 66.6666
+
+borders:
+  stroke_width_px: 2
+  inner_margin_px: 118
+  color: "#9C7E3E"
+  raster: true
+  as_paths: true
+
+fonts:
+  script:
+    family: "Cormorant Garamond Italic"
+    fallback: "Georgia Italic"
+  script_bold:
+    family: "Cormorant Garamond Bold Italic"
+    fallback: "Georgia Bold Italic"
+  serif:
+    family: "Cormorant Garamond Regular"
+    fallback: "Georgia"
+  bold:
+    family: "Cormorant Garamond Bold"
+    fallback: "Georgia Bold"
+
+externo:
+  front_cover:
+    title_size_px: 140
+    title_top_padding_px: 80
+    subtitle_size_px: 100
+    subtitle_y_factor: 0.78
+  middle:
+    weekday_size_px: 70
+    date_size_px: 42
+    arrival_size_px: 36
+    venue_size_px: 36
+    address_size_px: 32
+    calendar:
+      cell_size_px: 80
+      header_size_px: 36
+      day_size_px: 40
+      highlight_radius_px: 36
+      highlight_stroke_px: 3
+      weekday_labels: ["S", "M", "T", "W", "T", "F", "S"]
+  back_cover:
+    logo_padding_px: 50
+
+interno:
+  back_cover:
+    title_size_px: 100
+    body_size_px: 38
+    body_wrap_chars: 24
+    verse_size_px: 40
+    verse_wrap_chars: 26
+    ref_size_px: 28
+  middle:                   # SPLIT layout — two stacked role sections
+    overall_title_size_px: 90
+    section_title_size_px: 60
+    body_size_px: 34
+    body_wrap_chars: 58
+    color_label_size_px: 32
+    overall_title_y_top_offset_px: 30
+    groomsman_title_y_factor: 0.19
+    groomsman_body_y_factor: 0.31
+    groomsman_palette_y_factor: 0.43
+    bridesmaid_title_y_factor: 0.56
+    bridesmaid_body_y_factor: 0.69
+    bridesmaid_palette_y_factor: 0.83
+    palette:
+      circle_radius_px: 60
+      circle_spacing_px: 70
+  front_cover:
+    title_size_px: 100
+    body_size_px: 42
+    icon_size_px: 130
+
+background_image:
+  opacity_pct: 18
+  scale_mode: "cover"

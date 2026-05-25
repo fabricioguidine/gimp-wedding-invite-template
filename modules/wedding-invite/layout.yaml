@@ -1,0 +1,110 @@
+# wedding-invite — visual structure.
+# Edit content.yaml (the words) instead of this file unless you're moving
+# blocks around or changing dimensions.
+
+canvas:
+  # 5×7 inch portrait @ 300 DPI — common wedding-invite print size.
+  width_px: 1500
+  height_px: 2100
+  dpi: 300
+  background_color: "#F5EDE0"   # creme; only visible if no bg image supplied
+
+# Text color matches the reference PDF (olive gold).
+text_color: "#9C7E3E"
+
+fonts:
+  script:                 # italic decorative — verse, couple names
+    family: "Cormorant Garamond Italic"
+    fallback: "Georgia Italic"
+  script_bold:            # bold italic — section titles
+    family: "Cormorant Garamond Bold Italic"
+    fallback: "Georgia Bold Italic"
+  serif:                  # body regular
+    family: "Cormorant Garamond Regular"
+    fallback: "Georgia"
+  bold:                   # uppercase bold — blessing, parents, invitation text
+    family: "Cormorant Garamond Bold"
+    fallback: "Georgia Bold"
+
+# Each block is centered horizontally; y_pct is the vertical center of the
+# block as a fraction of canvas height. Sizes are pixel font heights at 300 DPI.
+blocks:
+  verse:
+    y_pct: 0.06
+    font: script
+    size_px: 36
+    wrap_chars: 50
+  verse_reference:
+    y_pct: 0.085
+    font: script_bold
+    size_px: 32
+
+  blessing:
+    y_pct: 0.17
+    font: bold
+    size_px: 32
+
+  divider:                # short horizontal rule between blessing and parents
+    y_pct: 0.205
+    width_px: 220
+    thickness_px: 2
+
+  parents:
+    y_pct: 0.255          # center y of the 2-column block
+    name_font: bold
+    name_size_px: 22
+    column_gap_px: 60
+    line_spacing_px: 10
+
+  couple:
+    y_pct: 0.405
+    font: script_bold
+    size_px: 130
+
+  invitation:
+    y_pct: 0.495
+    font: bold
+    size_px: 28
+
+  day:
+    y_pct: 0.56
+    font: script_bold
+    size_px: 56
+
+  date:
+    y_pct: 0.61
+    font: bold
+    size_px: 38
+
+  ceremony:               # time + venue + address — block of 3 lines
+    y_pct: 0.71
+    time_font: bold
+    time_size_px: 32
+    venue_font: bold
+    venue_size_px: 30
+    address_font: bold
+    address_size_px: 28
+    line_spacing_px: 12
+
+  reception:              # venue + address — block of 2 lines
+    y_pct: 0.825
+    venue_font: bold
+    venue_size_px: 30
+    address_font: bold
+    address_size_px: 28
+    line_spacing_px: 12
+
+  rsvp:                   # 2 small lines at the bottom
+    y_pct: 0.95
+    intro_font: bold
+    intro_size_px: 16
+    detail_font: bold
+    detail_size_px: 16
+    line_spacing_px: 8
+
+# Background image overlay. If user supplies one via the TUI, it gets loaded
+# below all text at this opacity. The bg image is scaled to fit the canvas
+# (cover, preserves aspect ratio).
+background_image:
+  opacity_pct: 35         # 0=invisible, 100=opaque
+  scale_mode: "cover"     # "cover" | "fit"
