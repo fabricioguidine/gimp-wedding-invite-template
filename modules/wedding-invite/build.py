@@ -24,14 +24,16 @@ gi.require_version('Gimp', '3.0')
 gi.require_version('Gegl', '0.4')
 from gi.repository import Gimp, Gegl, Gio
 
+from pathlib import Path
+
 from document import make_color
 from text_utils import resolve_font, make_text_layer, center_layer_at, wrap_text
 
 
 def run(layout, content, bg_path, output_dir, module_name):
     """Entrypoint called by src/module_runner.py. Returns list of saved XCF paths."""
-    from pathlib import Path
     image = _create_canvas(layout)
+    _place_background_layers(image, layout)
     if bg_path:
         _place_background(image, layout, bg_path)
     _draw_all_text(image, layout, content)
@@ -100,6 +102,72 @@ def _place_background(image, layout, bg_path):
 
     opacity = float(cfg.get('opacity_pct', 35))
     layer.set_opacity(max(0.0, min(100.0, opacity)))
+
+
+def _place_background_layers(image, layout):
+    """Insert the configured design background layers below all text.
+
+    Each entry in ``layout['background_layers']`` is a dict with ``file`` (path
+    relative to the repo root), ``scale_mode`` ('cover' | 'fit'), ``opacity_pct``
+    and an optional ``band`` ({center_pct, height_pct, feather_px}) that reveals
+    only a feathered horizontal strip. List order is bottom-to-top.
+    """
+    specs = layout.get('background_layers') or []
+    repo_root = Path(__file__).resolve().parent.parent.parent
+    for spec in specs:
+        rel = spec.get('file')
+        if not rel:
+            continue
+        path = repo_root / rel
+        if not path.exists():
+            print('[wedding-invite] bg layer not found: {}'.format(path))
+            continue
+        try:
+            layer = Gimp.file_load_layer(
+                Gimp.RunMode.NONINTERACTIVE, image,
+                Gio.File.new_for_path(str(path)),
+            )
+        except Exception as e:
+            print('[wedding-invite] failed bg layer {}: {}'.format(path, e))
+            continue
+        image.insert_layer(layer, None, 0)
+        layer.set_name('bg_{}'.format(Path(rel).stem))
+        _scale_layer_to_canvas(image, layer, spec.get('scale_mode', 'cover'))
+        band = spec.get('band')
+        if band:
+            _apply_band_mask(image, layer, band)
+        layer.set_opacity(max(0.0, min(100.0, float(spec.get('opacity_pct', 100)))))
+
+
+def _scale_layer_to_canvas(image, layer, mode):
+    cw, ch = image.get_width(), image.get_height()
+    lw, lh = layer.get_width(), layer.get_height()
+    if lw == 0 or lh == 0:
+        return
+    if mode == 'fit':
+        scale = min(cw / float(lw), ch / float(lh))
+    else:  # cover
+        scale = max(cw / float(lw), ch / float(lh))
+    new_w, new_h = max(1, int(lw * scale)), max(1, int(lh * scale))
+    layer.scale(new_w, new_h, False)
+    layer.set_offsets((cw - new_w) // 2, (ch - new_h) // 2)
+
+
+def _apply_band_mask(image, layer, band):
+    """Reveal only a feathered horizontal band of the layer via a layer mask."""
+    w, h = image.get_width(), image.get_height()
+    center = float(band.get('center_pct', 0.5))
+    height_pct = float(band.get('height_pct', 0.4))
+    feather = int(band.get('feather_px', 0))
+    top = int((center - height_pct / 2.0) * h)
+    band_h = int(height_pct * h)
+    mask = layer.create_mask(Gimp.AddMaskType.BLACK)
+    layer.add_mask(mask)
+    image.select_rectangle(Gimp.ChannelOps.REPLACE, 0, top, w, band_h)
+    if feather > 0:
+        Gimp.Selection.feather(image, float(feather))
+    mask.edit_fill(Gimp.FillType.WHITE)
+    Gimp.Selection.none(image)
 
 
 def _draw_all_text(image, layout, content):

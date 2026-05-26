@@ -102,9 +102,24 @@ blocks:
     detail_size_px: 16
     line_spacing_px: 8
 
-# Background image overlay. If user supplies one via the TUI, it gets loaded
-# below all text at this opacity. The bg image is scaled to fit the canvas
-# (cover, preserves aspect ratio).
+# Design background layers, composited below all text in list order
+# (bottom-to-top). These give the invite its soft layered look, mirroring the
+# reference: a faint watercolor couple full-bleed, then the venue photo masked
+# to a feathered center band. Files are relative to the repo root.
+background_layers:
+  - file: "assets/backgrounds/watercolor-couple.png"
+    scale_mode: "cover"
+    opacity_pct: 70
+  - file: "assets/backgrounds/venue-photo.png"
+    scale_mode: "cover"
+    opacity_pct: 45
+    band:                 # reveal only a centered, feathered horizontal strip
+      center_pct: 0.56
+      height_pct: 0.30
+      feather_px: 160
+
+# Per-run background image (supplied via the TUI / --bg). Loaded above the
+# design layers but below all text, scaled to the canvas at this opacity.
 background_image:
   opacity_pct: 35         # 0=invisible, 100=opaque
   scale_mode: "cover"     # "cover" | "fit"

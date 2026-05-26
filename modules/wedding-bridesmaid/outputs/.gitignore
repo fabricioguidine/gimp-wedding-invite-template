@@ -1,0 +1,4 @@
+# Generated artifacts per run — never commit
+*
+!.gitkeep
+!.gitignore

@@ -1,0 +1,82 @@
+# wedding-pages — text content (English placeholders), kid-friendly tone.
+# Like the other modules, the committed template uses English placeholder text;
+# real Portuguese names/verse/venue are plugged in per-run via the TUI.
+# Shared blocks (couple/date/ceremony/tips) apply to both variants; per-variant
+# cover/mission/role live under `variants:`.
+
+couple:
+  bride: "Emily"
+  groom: "James Thomas"
+
+# Date data — drives the calendar highlight + the date-by-extenso text.
+date:
+  year: 2026
+  month: 10                       # October
+  day: 10
+  month_name: "October"
+  weekday_name: "Saturday"
+
+ceremony:
+  arrival_label: "Ceremony at"
+  arrival_time: "17:00"
+  venue: "Our Lady of the Rosary Parish Church"
+  address: "123 Sample Avenue, Suite 230"
+
+# Tips for the big day — right panel of the internal side.
+tips:
+  title: "Tips for the big day:"
+  items:
+    - icon: teddy
+      text: "Arrive 30 minutes early"
+    - icon: car
+      text: "Lovely smiles!"
+    - icon: balloons
+      text: "Have lots of fun!"
+
+# Per-variant data: cover + invite (mission) + outfit instruction (role).
+variants:
+  # pajem (page boy / ring bearer) — navy suit
+  pajem:
+    cover:
+      title: "Page Boy Manual"
+      image: "assets/kids/pajem.png"
+    mission:
+      title: "Dear Page Boy,"
+      body: "You are very special to us, and we would love for you to be part of our wedding! We have a very special invitation for you..."
+      highlight: "Will you be our page boy?"
+      verse:
+        text: '"Let the little children come to me, and do not hinder them, for the kingdom of heaven belongs to such as these."'
+        reference: "Matthew 19:14"
+    role:
+      title: "Page Boy"
+      body: "To look even more handsome on this special day, please wear: a navy blue suit, a white shirt and tie, and dark shoes."
+      palette_subtitle: "Page Boy outfit"
+      colors:
+        - "#1B2A4A"
+        - "#FFFFFF"
+        - "#1A1A1A"
+      color_names:
+        - "Navy"
+        - "White"
+        - "Black"
+
+  # daminha (flower girl) — white dress
+  daminha:
+    cover:
+      title: "Flower Girl Manual"
+      image: "assets/kids/daminha.png"
+    mission:
+      title: "Dear Flower Girl,"
+      body: "You are very special to us, and we would love for you to be part of our wedding! We have a very special invitation for you..."
+      highlight: "Will you be our flower girl?"
+      verse:
+        text: '"Let the little children come to me, and do not hinder them, for the kingdom of heaven belongs to such as these."'
+        reference: "Matthew 19:14"
+    role:
+      title: "Flower Girl"
+      body: "To look even more beautiful on this special day, please wear: a lovely white dress that matches our palette."
+      palette_subtitle: "Flower Girl outfit"
+      colors:
+        - "#FFFFFF"
+      color_names:
+        - "White"

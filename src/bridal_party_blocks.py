@@ -259,6 +259,19 @@ def draw_mission_block(image, layout, content, panel_rects, panel_groups):
         body.set_offsets(cx - body.get_width() // 2, body_top)
         body_bottom = body_top + body.get_height()
 
+    # optional highlighted call-to-action ("Aceita ser nosso Pajem?"), rendered
+    # larger in the script-bold face for emphasis
+    highlight = (mission.get('highlight') or '').strip()
+    if highlight:
+        hl_size = int(cfg.get('highlight_size_px', 60))
+        hl = make_text_layer(image, parent, 'mission_highlight',
+                             wrap_text(highlight, int(cfg.get('highlight_wrap_chars', 16))),
+                             title_font, hl_size, color)
+        hl.set_justification(Gimp.TextJustification.CENTER)
+        hl_top = body_bottom + 70
+        hl.set_offsets(cx - hl.get_width() // 2, hl_top)
+        body_bottom = hl_top + hl.get_height()
+
     verse = mission.get('verse') or {}
     if verse.get('text'):
         v_top = body_bottom + 130
@@ -403,3 +416,166 @@ def load_svg_icon(image, parent_group, icon_name, target_px):
         new_h = int(layer.get_height() * scale)
         layer.scale(target_px, new_h, False)
     return layer
+
+
+# ============================================================ variant runner
+def run_variants(layout, content, bg_path, output_dir, module_name, variant_order):
+    """Generic driver for the bridal-party / kids tri-fold modules.
+
+    For each name in ``variant_order`` it merges the shared top-level content
+    with ``content['variants'][name]`` and renders the externo + interno sides.
+    The interno middle uses the split layout when the variant carries ``roles``
+    (couple) and the single-role layout otherwise. An optional cover
+    illustration (``cover.image``) is placed when present.
+
+    Returns the list of saved XCF paths (one per variant per side).
+    """
+    shared = {k: v for k, v in content.items() if k != 'variants'}
+    out = []
+    for variant in variant_order:
+        vc = dict(shared)
+        vc.update(content['variants'][variant])
+        split = 'roles' in vc
+        for side in ('externo', 'interno'):
+            image, panel_rects, panel_groups = prepare_image(layout, bg_path)
+            if side == 'externo':
+                draw_externo(image, layout, vc, panel_rects, panel_groups)
+                draw_cover_image(image, layout, vc, panel_rects, panel_groups)
+            else:
+                draw_mission_block(image, layout, vc, panel_rects, panel_groups)
+                if split:
+                    draw_split_center(image, layout, vc, panel_rects, panel_groups)
+                else:
+                    draw_role_center(image, layout, vc, variant,
+                                     panel_rects, panel_groups)
+                draw_tips_block(image, layout, vc, panel_rects, panel_groups)
+            xcf = str(Path(output_dir) /
+                      '{}_{}_{}.xcf'.format(module_name, variant, side))
+            save_xcf(image, xcf)
+            out.append(xcf)
+    return out
+
+
+def draw_cover_image(image, layout, content, panel_rects, panel_groups):
+    """Optional cover illustration. No-op unless content['cover']['image'] is set.
+
+    The PNG (path relative to the repo root) lands at the top of the front_cover
+    panel, above the title (layout pushes the title down via title_top_padding_px).
+    """
+    rel = (content.get('cover') or {}).get('image')
+    if not rel:
+        return
+    path = _REPO_ROOT / rel
+    if not path.exists():
+        print('[bridal_party] cover art slot empty — drop a file at {}'.format(path))
+        return
+    panel = 'front_cover'
+    px, py, pw, ph = panel_rects[panel]
+    parent = panel_groups[panel]
+    try:
+        layer = Gimp.file_load_layer(Gimp.RunMode.NONINTERACTIVE, image,
+                                     Gio.File.new_for_path(str(path)))
+    except Exception as e:
+        print('[bridal_party] failed cover art {}: {}'.format(path, e))
+        return
+    image.insert_layer(layer, parent, 0)
+    layer.set_name('cover_art')
+    inner = int(layout['borders']['inner_margin_px'])
+    cw, chh = layer.get_width(), layer.get_height()
+    if not cw or not chh:
+        return
+    avail_w, avail_h = pw - 2 * inner, int(ph * 0.34)
+    scale = min(avail_w / float(cw), avail_h / float(chh))
+    new_w, new_h = max(1, int(cw * scale)), max(1, int(chh * scale))
+    layer.scale(new_w, new_h, False)
+    layer.set_offsets(px + (pw - new_w) // 2, py + inner + int(ph * 0.02))
+
+
+def draw_role_center(image, layout, content, variant, panel_rects, panel_groups):
+    """Single-role interno center: title + body + palette subtitle + swatches."""
+    cfg = layout['interno']['middle']['single']
+    px, py, pw, ph = panel_rects['middle']
+    parent = panel_groups['middle']
+    cx = px + pw // 2
+    color = make_color(layout['text_color'])
+    title_font = resolve_font(layout, 'script_bold')
+    body_font = resolve_font(layout, 'serif')
+
+    role = content['role']
+    title = make_text_layer(image, parent, 'role_title', role['title'],
+                            title_font, int(cfg['role_title_size_px']), color)
+    center_layer_at(title, cx, py + int(ph * 0.13))
+
+    body_text = role.get('body') or ''
+    if body_text:
+        sentences = split_sentences(body_text)
+        wrapped = '\n'.join(wrap_text(line, int(cfg['body_wrap_chars']))
+                            for line in sentences.split('\n'))
+        body = make_text_layer(image, parent, 'role_body', wrapped,
+                               body_font, int(cfg['body_size_px']), color)
+        body.set_justification(Gimp.TextJustification.CENTER)
+        center_layer_at(body, cx, py + int(ph * 0.40))
+
+    subtitle = make_text_layer(image, parent, 'palette_subtitle',
+                               role['palette_subtitle'], body_font,
+                               int(cfg['palette_subtitle_size_px']), color)
+    center_layer_at(subtitle, cx, py + int(ph * 0.66))
+
+    draw_palette_with_labels(
+        image, layout, panel_rects, panel_groups,
+        colors=role['colors'], names=role['color_names'],
+        panel_name='middle', y_factor=0.78, palette_cfg=cfg['palette'],
+        label_size_px=cfg['color_label_size_px'], layer_prefix=variant)
+
+
+def draw_split_center(image, layout, content, panel_rects, panel_groups):
+    """Split interno center (couple): stacked groomsman + bridesmaid sections."""
+    cfg = layout['interno']['middle']['split']
+    px, py, pw, ph = panel_rects['middle']
+    parent = panel_groups['middle']
+    cx = px + pw // 2
+    color = make_color(layout['text_color'])
+    title_font = resolve_font(layout, 'script_bold')
+    body_font = resolve_font(layout, 'serif')
+
+    roles = content['roles']
+    overall = make_text_layer(image, parent, 'couple_title',
+                              roles['overall_title'], title_font,
+                              int(cfg['overall_title_size_px']), color)
+    inner_margin = int(layout['borders']['inner_margin_px'])
+    overall.set_offsets(cx - overall.get_width() // 2,
+                        py + inner_margin + int(cfg['overall_title_y_top_offset_px']))
+
+    for key, prefix in (('groomsman', 'cpl_groomsman'),
+                        ('bridesmaid', 'cpl_bridesmaid')):
+        _draw_section(image, parent, layout, panel_rects, panel_groups,
+                      role=roles[key], layer_prefix=prefix,
+                      title_y_factor=float(cfg['{}_title_y_factor'.format(key)]),
+                      body_y_factor=float(cfg['{}_body_y_factor'.format(key)]),
+                      palette_y_factor=float(cfg['{}_palette_y_factor'.format(key)]),
+                      cfg=cfg, color=color, cx=cx, py=py, ph=ph,
+                      title_font=title_font, body_font=body_font)
+
+
+def _draw_section(image, parent, layout, panel_rects, panel_groups, *,
+                  role, layer_prefix, title_y_factor, body_y_factor,
+                  palette_y_factor, cfg, color, cx, py, ph,
+                  title_font, body_font):
+    title = make_text_layer(image, parent, '{}_title'.format(layer_prefix),
+                            role['title'], title_font,
+                            int(cfg['section_title_size_px']), color)
+    center_layer_at(title, cx, py + int(ph * title_y_factor))
+
+    if role.get('body'):
+        body = make_text_layer(image, parent, '{}_body'.format(layer_prefix),
+                               wrap_text(role['body'], int(cfg['body_wrap_chars'])),
+                               body_font, int(cfg['body_size_px']), color)
+        body.set_justification(Gimp.TextJustification.CENTER)
+        center_layer_at(body, cx, py + int(ph * body_y_factor))
+
+    draw_palette_with_labels(
+        image, layout, panel_rects, panel_groups,
+        colors=role['colors'], names=role['color_names'],
+        panel_name='middle', y_factor=palette_y_factor, palette_cfg=cfg['palette'],
+        label_size_px=cfg['color_label_size_px'], label_y_offset_px=45,
+        layer_prefix=layer_prefix)

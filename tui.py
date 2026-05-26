@@ -26,6 +26,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -136,16 +137,12 @@ def _yaml_to_json_file(yaml_obj: Any, out_path: Path) -> None:
                         encoding='utf-8')
 
 
-def _build(module: dict[str, Any], run_name: str, bg_path: str | None,
-           content: dict[str, Any]) -> int:
-    if not GIMP_EXE.exists():
-        print('ERR: gimp-console not found at {}'.format(GIMP_EXE), file=sys.stderr)
-        return 2
-
+def _prepare_run(module: dict[str, Any], run_name: str,
+                 content: dict[str, Any]) -> dict[str, str]:
+    """Persist per-run content/layout (yaml + json); return a manifest entry."""
     module_dir: Path = module['dir']
     run_dir = module_dir / 'outputs' / run_name
     run_dir.mkdir(parents=True, exist_ok=True)
-
     # Persist the chosen content (reproducibility) + a layout copy.
     (run_dir / '_content.yaml').write_text(
         yaml.safe_dump(content, allow_unicode=True, sort_keys=False),
@@ -153,43 +150,81 @@ def _build(module: dict[str, Any], run_name: str, bg_path: str | None,
     )
     layout = yaml.safe_load((module_dir / 'layout.yaml').read_text(encoding='utf-8'))
     shutil.copy(module_dir / 'layout.yaml', run_dir / '_layout.yaml')
-
     # Bridge YAML -> JSON for the GIMP-embedded Python (no pyyaml there).
     layout_json = run_dir / '_layout.json'
     content_json = run_dir / '_content.json'
     _yaml_to_json_file(layout, layout_json)
     _yaml_to_json_file(content, content_json)
+    return {
+        'name': module['name'], 'dir': str(module_dir),
+        'layout_json': str(layout_json), 'content_json': str(content_json),
+        'run_dir': str(run_dir),
+    }
 
-    env = os.environ.copy()
-    env.update({
-        'WEDDING_MODULE': module['name'],
-        'WEDDING_MODULE_DIR': str(module_dir),
-        'WEDDING_LAYOUT_JSON': str(layout_json),
-        'WEDDING_CONTENT_JSON': str(content_json),
-        'WEDDING_RUN_DIR': str(run_dir),
-    })
-    if bg_path:
-        env['WEDDING_BG_PATH'] = bg_path
 
+def _invoke_gimp(env: dict[str, str]) -> int:
+    """Run gimp-console once with the module_runner batch; return its exit code."""
+    if not GIMP_EXE.exists():
+        print('ERR: gimp-console not found at {}'.format(GIMP_EXE), file=sys.stderr)
+        return 2
     # Forward-slashes so backslashes don't get interpreted as escapes in the
     # GIMP batch interpreter string.
     src_for_batch = str(SRC_DIR).replace('\\', '/')
     batch = ("import sys; sys.path.insert(0, r'{}'); "
              "import module_runner".format(src_for_batch))
-
-    print('\n[tui] invoking GIMP for module={} run={}'.format(module['name'], run_name))
     proc = subprocess.run(
         [str(GIMP_EXE), '-i', '-d', '--quit',
          '--batch-interpreter=python-fu-eval', '-b', batch],
-        env=env,
-        check=False,
+        env=env, check=False,
     )
-    if proc.returncode != 0:
-        print('GIMP exited with code {}'.format(proc.returncode), file=sys.stderr)
-        return proc.returncode
+    return proc.returncode
 
-    print('\n[tui] done. Artifacts: {}'.format(run_dir))
-    return 0
+
+def _build(module: dict[str, Any], run_name: str, bg_path: str | None,
+           content: dict[str, Any]) -> int:
+    entry = _prepare_run(module, run_name, content)
+    env = os.environ.copy()
+    env.pop('WEDDING_MANIFEST', None)
+    env.update({
+        'WEDDING_MODULE': entry['name'],
+        'WEDDING_MODULE_DIR': entry['dir'],
+        'WEDDING_LAYOUT_JSON': entry['layout_json'],
+        'WEDDING_CONTENT_JSON': entry['content_json'],
+        'WEDDING_RUN_DIR': entry['run_dir'],
+    })
+    if bg_path:
+        env['WEDDING_BG_PATH'] = bg_path
+
+    print('\n[tui] invoking GIMP for module={} run={}'.format(entry['name'], run_name))
+    rc = _invoke_gimp(env)
+    if rc == 0:
+        print('\n[tui] done. Artifacts: {}'.format(entry['run_dir']))
+    else:
+        print('GIMP exited with code {}'.format(rc), file=sys.stderr)
+    return rc
+
+
+def _build_all(modules: list[dict[str, Any]], run_name: str) -> int:
+    """Build every given module in ONE GIMP session (defaults from each content.yaml)."""
+    entries = [_prepare_run(m, run_name,
+                            yaml.safe_load((m['dir'] / 'content.yaml').read_text(encoding='utf-8')))
+               for m in modules]
+    manifest = Path(tempfile.gettempdir()) / 'wedding_manifest_{}.json'.format(run_name)
+    manifest.write_text(json.dumps(entries, default=str, indent=2), encoding='utf-8')
+    env = os.environ.copy()
+    env['WEDDING_MANIFEST'] = str(manifest)
+    print('\n[tui] building {} modules in one GIMP session: {}'.format(
+        len(entries), ', '.join(e['name'] for e in entries)))
+    rc = _invoke_gimp(env)
+    try:
+        manifest.unlink()
+    except OSError:
+        pass
+    if rc == 0:
+        print('\n[tui] done. {} modules built.'.format(len(entries)))
+    else:
+        print('GIMP exited with code {}'.format(rc), file=sys.stderr)
+    return rc
 
 
 # ---------------------------------------------------------------------- main
@@ -200,6 +235,8 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument('--bg', dest='bg', help='Background image path.')
     p.add_argument('--non-interactive', action='store_true',
                    help='Use defaults from content.yaml without prompting per field.')
+    p.add_argument('--all', dest='build_all', action='store_true',
+                   help='Build every active module in ONE GIMP session (content.yaml defaults).')
     return p.parse_args()
 
 
@@ -212,6 +249,13 @@ def main() -> int:
 
     active = [m for m in modules if m['active']]
     inactive = [m for m in modules if not m['active']]
+
+    if args.build_all:
+        if not active:
+            print('No active modules to build.', file=sys.stderr)
+            return 2
+        run_name = (args.run_name or 'run-' + _dt.datetime.now().strftime('%Y%m%d-%H%M%S'))
+        return _build_all(active, run_name.replace(' ', '-'))
 
     if args.module:
         match = next((m for m in modules if m['name'] == args.module), None)

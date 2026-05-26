@@ -77,36 +77,50 @@ def _export(xcf_path):
     return png, pdf
 
 
-def main():
-    Gegl.init(None)
-
-    module_name = _env('WEDDING_MODULE')
-    module_dir = Path(_env('WEDDING_MODULE_DIR'))
-    layout = _load_json(_env('WEDDING_LAYOUT_JSON'))
-    content = _load_json(_env('WEDDING_CONTENT_JSON'))
-    run_dir = Path(_env('WEDDING_RUN_DIR'))
-    bg_path = os.environ.get('WEDDING_BG_PATH') or None
-
+def _build_one(name, module_dir, layout, content, bg_path, run_dir):
+    """Build one module + export its XCFs to PNG/PDF."""
+    run_dir = Path(run_dir)
     run_dir.mkdir(parents=True, exist_ok=True)
-
-    module_build = _import_module_build(module_dir)
-
+    module_build = _import_module_build(Path(module_dir))
     xcf_paths = module_build.run(
-        layout=layout,
-        content=content,
-        bg_path=bg_path,
-        output_dir=str(run_dir),
-        module_name=module_name,
+        layout=layout, content=content, bg_path=bg_path,
+        output_dir=str(run_dir), module_name=name,
     )
     if not xcf_paths:
-        raise RuntimeError("module '{}' did not return any XCF paths".format(module_name))
-
-    print('[module_runner] {} produced {} XCF(s):'.format(module_name, len(xcf_paths)))
+        raise RuntimeError("module '{}' did not return any XCF paths".format(name))
+    print('[module_runner] {} produced {} XCF(s):'.format(name, len(xcf_paths)))
     for xcf in xcf_paths:
         png, pdf = _export(xcf)
         print('  + {}'.format(Path(xcf).name))
         print('     -> {}'.format(Path(png).name))
         print('     -> {}'.format(Path(pdf).name))
+
+
+def main():
+    Gegl.init(None)
+
+    # Fast path: a manifest builds several modules in ONE GIMP session (avoids
+    # the ~15-20s GIMP startup per module). Each entry has name/dir/layout_json/
+    # content_json/run_dir and an optional bg_path.
+    manifest_path = os.environ.get('WEDDING_MANIFEST')
+    if manifest_path:
+        for entry in _load_json(manifest_path):
+            _build_one(entry['name'], entry['dir'],
+                       _load_json(entry['layout_json']),
+                       _load_json(entry['content_json']),
+                       entry.get('bg_path') or None,
+                       entry['run_dir'])
+        return
+
+    # Single-module path (env vars set by tui.py / run.ps1).
+    _build_one(
+        _env('WEDDING_MODULE'),
+        Path(_env('WEDDING_MODULE_DIR')),
+        _load_json(_env('WEDDING_LAYOUT_JSON')),
+        _load_json(_env('WEDDING_CONTENT_JSON')),
+        os.environ.get('WEDDING_BG_PATH') or None,
+        Path(_env('WEDDING_RUN_DIR')),
+    )
 
 
 main()
