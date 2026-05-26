@@ -36,16 +36,69 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 _ICONS_DIR = _REPO_ROOT / 'assets' / 'ornaments' / 'icons'
 _LOGO_PATH = _REPO_ROOT / 'assets' / 'ornaments' / 'logo.png'
 
+# Sunday-first weekday initials per locale (content.date.locale). Used to fill
+# the calendar header automatically instead of hardcoding it in layout.yaml.
+_WEEKDAY_INITIALS = {
+    'pt': ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'],
+    'en': ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
+    'es': ['D', 'L', 'M', 'X', 'J', 'V', 'S'],
+    'fr': ['D', 'L', 'M', 'M', 'J', 'V', 'S'],
+    'it': ['D', 'L', 'M', 'M', 'G', 'V', 'S'],
+    'de': ['S', 'M', 'D', 'M', 'D', 'F', 'S'],
+}
+
+
+def _weekday_initials(locale, fallback):
+    """Day initials for a locale code ('pt', 'pt-BR', 'en_US', ...) or fallback."""
+    if not locale:
+        return fallback
+    key = str(locale).lower().replace('_', '-').split('-')[0]
+    return _WEEKDAY_INITIALS.get(key, fallback)
+
+
+def _input_png(inputs_dir, name):
+    """Return inputs_dir/name if it exists (a user override PNG), else None."""
+    if not inputs_dir:
+        return None
+    p = Path(inputs_dir) / name
+    return p if p.exists() else None
+
+
+def _clamp_pct(value, default=1.0):
+    try:
+        return max(0.1, min(1.0, float(value)))
+    except (TypeError, ValueError):
+        return default
+
 
 # ============================================================ canvas/setup
-def build_canvas(layout, bg_path):
+def build_canvas(layout, bg_path, content=None, inputs_dir=None):
     image = create_canvas(layout, None)
-    if bg_path:
+    # content-level background colour override (TUI-editable via content.yaml)
+    if content and content.get('background_color'):
+        _fill_bg_color(image, content['background_color'])
+    # full-bleed background image override from inputs/background.png
+    bg_override = _input_png(inputs_dir, 'background.png')
+    if bg_override:
+        _place_background(image, layout, str(bg_override), full=True)
+    elif bg_path:
         _place_background(image, layout, bg_path)
     return image
 
 
-def _place_background(image, layout, bg_path):
+def _fill_bg_color(image, hex_color):
+    bg = next((l for l in image.get_layers() if l.get_name() == 'bg'), None)
+    if bg is None:
+        return
+    Gimp.context_push()
+    try:
+        Gimp.context_set_foreground(make_color(hex_color))
+        bg.fill(Gimp.FillType.FOREGROUND)
+    finally:
+        Gimp.context_pop()
+
+
+def _place_background(image, layout, bg_path, full=False):
     cfg = layout.get('background_image') or {}
     try:
         layer = Gimp.file_load_layer(
@@ -61,12 +114,15 @@ def _place_background(image, layout, bg_path):
     lw, lh = layer.get_width(), layer.get_height()
     if lw == 0 or lh == 0:
         return
-    mode = cfg.get('scale_mode', 'cover')
+    # an inputs/background.png override fills full-bleed at full opacity;
+    # a --bg image is a soft watermark (layout's opacity / scale_mode).
+    mode = 'cover' if full else cfg.get('scale_mode', 'cover')
     scale = (min if mode == 'fit' else max)(cw / float(lw), ch / float(lh))
     new_w, new_h = max(1, int(lw * scale)), max(1, int(lh * scale))
     layer.scale(new_w, new_h, False)
     layer.set_offsets((cw - new_w) // 2, (ch - new_h) // 2)
-    layer.set_opacity(max(0.0, min(100.0, float(cfg.get('opacity_pct', 20)))))
+    opacity = 100.0 if full else float(cfg.get('opacity_pct', 20))
+    layer.set_opacity(max(0.0, min(100.0, opacity)))
 
 
 def create_panel_groups(image, panel_rects):
@@ -79,12 +135,13 @@ def create_panel_groups(image, panel_rects):
     return groups
 
 
-def prepare_image(layout, bg_path):
+def prepare_image(layout, bg_path, content=None, inputs_dir=None):
     """One-shot: canvas + bg + panels + borders + panel groups.
 
-    Returns (image, panel_rects, panel_groups).
+    ``content`` may carry a ``background_color`` override; ``inputs_dir`` may hold
+    a ``background.png`` to use full-bleed. Returns (image, panel_rects, panel_groups).
     """
-    image = build_canvas(layout, bg_path)
+    image = build_canvas(layout, bg_path, content, inputs_dir)
     panel_rects = compute_panel_rects(layout)
     draw_borders(image, layout, panel_rects)
     panel_groups = create_panel_groups(image, panel_rects)
@@ -98,7 +155,7 @@ def save_xcf(image, path):
 
 
 # ============================================================ externo
-def draw_externo(image, layout, content, panel_rects, panel_groups):
+def draw_externo(image, layout, content, panel_rects, panel_groups, inputs_dir=None):
     """The folded-cover face. Same for all three manuals."""
     cfg = layout['externo']
     color = make_color(layout['text_color'])
@@ -109,8 +166,8 @@ def draw_externo(image, layout, content, panel_rects, panel_groups):
                           panel_rects, panel_groups, color)
     _draw_calendar_with_info(image, layout, cfg['middle'], content,
                              panel_rects, panel_groups, color)
-    _draw_back_cover_logo(image, layout, cfg['back_cover'],
-                          panel_rects, panel_groups)
+    _draw_back_cover_logo(image, layout, cfg['back_cover'], content,
+                          panel_rects, panel_groups, inputs_dir)
 
 
 def _draw_cover_title(image, layout, cfg, content, panel_rects, panel_groups, color):
@@ -147,7 +204,14 @@ def _draw_calendar_with_info(image, layout, cfg, content, panel_rects, panel_gro
     title_font = resolve_font(layout, 'script_bold')
     body_font = resolve_font(layout, 'serif')
 
-    shim_layout = _shim_calendar_layout(layout, cfg['calendar'])
+    # weekday header: auto from content.date.locale (e.g. 'pt', 'en'); falls
+    # back to the labels in layout.yaml when no locale is given.
+    cal_cfg = cfg['calendar']
+    locale = content['date'].get('locale')
+    if locale:
+        cal_cfg = dict(cal_cfg)
+        cal_cfg['weekday_labels'] = _weekday_initials(locale, cal_cfg['weekday_labels'])
+    shim_layout = _shim_calendar_layout(layout, cal_cfg)
     shim_invite = {
         'save_the_date': {
             'year': int(content['date']['year']),
@@ -202,16 +266,19 @@ def _shim_calendar_layout(layout, calendar_cfg):
     }
 
 
-def _draw_back_cover_logo(image, layout, cfg, panel_rects, panel_groups):
+def _draw_back_cover_logo(image, layout, cfg, content, panel_rects, panel_groups,
+                          inputs_dir=None):
     panel = 'back_cover'
     px, py, pw, ph = panel_rects[panel]
     parent = panel_groups[panel]
-    if not _LOGO_PATH.exists():
+    # inputs/logo.png (user override) wins over the bundled monogram asset.
+    logo_path = _input_png(inputs_dir, 'logo.png') or _LOGO_PATH
+    if not Path(logo_path).exists():
         return
     try:
         layer = Gimp.file_load_layer(
             Gimp.RunMode.NONINTERACTIVE, image,
-            Gio.File.new_for_path(str(_LOGO_PATH)),
+            Gio.File.new_for_path(str(logo_path)),
         )
     except Exception as e:
         print('[bridal_party] failed to load logo: {}'.format(e))
@@ -219,7 +286,8 @@ def _draw_back_cover_logo(image, layout, cfg, panel_rects, panel_groups):
     image.insert_layer(layer, parent, 0)
     layer.set_name('back_cover_logo')
     pad = int(cfg.get('logo_padding_px', 50))
-    target_w, target_h = pw - 2 * pad, ph - 2 * pad
+    pct = _clamp_pct((content.get('images') or {}).get('logo_pct', 1.0))
+    target_w, target_h = (pw - 2 * pad) * pct, (ph - 2 * pad) * pct
     cur_w, cur_h = layer.get_width(), layer.get_height()
     if cur_w == 0 or cur_h == 0:
         return
@@ -430,6 +498,8 @@ def run_variants(layout, content, bg_path, output_dir, module_name, variant_orde
 
     Returns the list of saved XCF paths (one per variant per side).
     """
+    # modules/<name>/inputs/ may hold user override PNGs (logo/background/cover).
+    inputs_dir = Path(output_dir).resolve().parent.parent / 'inputs'
     shared = {k: v for k, v in content.items() if k != 'variants'}
     out = []
     for variant in variant_order:
@@ -437,10 +507,11 @@ def run_variants(layout, content, bg_path, output_dir, module_name, variant_orde
         vc.update(content['variants'][variant])
         split = 'roles' in vc
         for side in ('externo', 'interno'):
-            image, panel_rects, panel_groups = prepare_image(layout, bg_path)
+            image, panel_rects, panel_groups = prepare_image(layout, bg_path, vc, inputs_dir)
             if side == 'externo':
-                draw_externo(image, layout, vc, panel_rects, panel_groups)
-                draw_cover_image(image, layout, vc, panel_rects, panel_groups)
+                draw_externo(image, layout, vc, panel_rects, panel_groups, inputs_dir)
+                draw_cover_image(image, layout, vc, panel_rects, panel_groups,
+                                 inputs_dir, variant)
             else:
                 draw_mission_block(image, layout, vc, panel_rects, panel_groups)
                 if split:
@@ -456,19 +527,26 @@ def run_variants(layout, content, bg_path, output_dir, module_name, variant_orde
     return out
 
 
-def draw_cover_image(image, layout, content, panel_rects, panel_groups):
-    """Optional cover illustration. No-op unless content['cover']['image'] is set.
+def draw_cover_image(image, layout, content, panel_rects, panel_groups,
+                     inputs_dir=None, variant=None):
+    """Optional cover illustration at the top of the front_cover panel.
 
-    The PNG (path relative to the repo root) lands at the top of the front_cover
-    panel, above the title (layout pushes the title down via title_top_padding_px).
+    Source priority: inputs/<variant>.png (user override) > content.cover.image
+    (repo-relative path). Size is scaled to the available area times
+    content.images.cover_pct (0..1, clamped). No-op if neither source exists.
     """
-    rel = (content.get('cover') or {}).get('image')
-    if not rel:
-        return
-    path = _REPO_ROOT / rel
-    if not path.exists():
-        print('[bridal_party] cover art slot empty — drop a file at {}'.format(path))
-        return
+    override = _input_png(inputs_dir, '{}.png'.format(variant)) if variant else None
+    if override:
+        path = override
+    else:
+        rel = (content.get('cover') or {}).get('image')
+        if not rel:
+            return
+        path = _REPO_ROOT / rel
+        if not path.exists():
+            print('[bridal_party] cover art slot empty — drop {} or inputs/{}.png'
+                  .format(path, variant))
+            return
     panel = 'front_cover'
     px, py, pw, ph = panel_rects[panel]
     parent = panel_groups[panel]
@@ -484,7 +562,8 @@ def draw_cover_image(image, layout, content, panel_rects, panel_groups):
     cw, chh = layer.get_width(), layer.get_height()
     if not cw or not chh:
         return
-    avail_w, avail_h = pw - 2 * inner, int(ph * 0.34)
+    pct = _clamp_pct((content.get('images') or {}).get('cover_pct', 1.0))
+    avail_w, avail_h = (pw - 2 * inner) * pct, ph * 0.34 * pct
     scale = min(avail_w / float(cw), avail_h / float(chh))
     new_w, new_h = max(1, int(cw * scale)), max(1, int(chh * scale))
     layer.scale(new_w, new_h, False)

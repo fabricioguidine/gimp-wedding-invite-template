@@ -67,6 +67,28 @@ modules/wedding-invite/outputs/my-run/
 └── wedding-invite.pdf     # print-ready
 ```
 
+## Customizing
+
+Everything text-based is editable per run through the TUI — it walks every field
+in `content.yaml` and prompts for each (Enter keeps the default): couple names,
+date, ceremony, tips, and per-variant cover title, invite (`mission`:
+title / body / highlight / verse) and outfit (`role`: title / body / palette).
+
+A few `content.yaml` knobs adjust the look without touching code:
+
+- `background_color` — canvas colour (overrides `layout.yaml`).
+- `images.logo_pct` / `images.cover_pct` — size of the override art (0–1 of the
+  available area; `1.0` = as large as fits).
+- `date.locale` — weekday-header language (`en` / `pt` / `es` / `fr` / `it` /
+  `de`); the calendar day initials are filled automatically.
+
+Image elements are swapped by dropping PNGs into a module's `inputs/` folder
+(no code edit, no TUI):
+
+- `inputs/logo.png` — back-cover monogram.
+- `inputs/background.png` — full-bleed background image.
+- `inputs/<variant>.png` — cover illustration (e.g. `inputs/pajem.png`).
+
 ## Architecture
 
 ```
@@ -143,6 +165,23 @@ Google Fonts into the user font directory. The build falls back to
 - Python 3.13 on the system PATH (for `pyyaml`, `questionary`, and `tui.py`)
 - The GIMP-embedded Python is invoked separately by `gimp-console-3.2.exe`
   and only needs the standard library + `gi.repository.Gimp`.
+
+## Tests
+
+```powershell
+pip install pytest
+
+# Static checks only (fast, no GIMP): module structure, YAML, schema, launcher
+pytest tests/test_structure.py tests/test_tui.py
+
+# Everything, including end-to-end GIMP builds (slow; auto-skipped if GIMP
+# isn't installed — each test launches gimp-console)
+pytest
+```
+
+`tests/test_e2e.py` builds each module (and `--all`) for real and asserts the
+XCF/PNG/PDF artifacts exist, plus that a module still builds with an
+`inputs/logo.png` override present.
 
 ## License
 

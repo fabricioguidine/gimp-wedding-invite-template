@@ -6,6 +6,15 @@ couple:
   bride: "Emily"
   groom: "James Thomas"
 
+# Canvas background — editable here (overrides layout.yaml). Drop a PNG at
+# modules/<this>/inputs/background.png for a full-bleed image background.
+background_color: "#FFFFFF"
+
+# Override the back-cover monogram by dropping modules/<this>/inputs/logo.png;
+# logo_pct sizes it (0..1 of the available area, 1.0 = max).
+images:
+  logo_pct: 1.0
+
 # Date data — drives the calendar highlight + the date-by-extenso text.
 date:
   year: 2026
@@ -13,6 +22,7 @@ date:
   day: 10
   month_name: "October"
   weekday_name: "Sunday"
+  locale: "en"                    # weekday initials: en / pt / es / fr / it / de
 
 ceremony:
   arrival_label: "Bridal party arrival"
