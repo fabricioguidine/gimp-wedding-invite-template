@@ -56,12 +56,12 @@ externo:
   middle:                     # calendar + ceremony info  (+34% text)
     weekday_size_px: 94
     date_size_px: 56
-    arrival_size_px: 48
-    venue_size_px: 48
-    address_size_px: 43
+    arrival_size_px: 51         # floor: no text smaller than the Sua Missão body (51)
+    venue_size_px: 51
+    address_size_px: 51
     calendar:
       cell_size_px: 80
-      header_size_px: 48
+      header_size_px: 51
       day_size_px: 54
       highlight_radius_px: 36
       highlight_stroke_px: 3
@@ -77,7 +77,7 @@ interno:
     body_wrap_chars: 33         # widened with the font so the block keeps its height
     verse_size_px: 54
     verse_wrap_chars: 35
-    ref_size_px: 38
+    ref_size_px: 51             # floor at Sua Missão body size
   middle:
     # single — madrinha / padrinho: one role title + body + palette + names.
     single:
@@ -85,29 +85,28 @@ interno:
       body_size_px: 56
       body_wrap_chars: 32       # widened with the font (fewer, wider lines)
       palette_subtitle_size_px: 67
-      color_label_size_px: 48
+      color_label_size_px: 51   # floor at Sua Missão body size
       palette:
         circle_radius_px: 60
-        circle_spacing_px: 110  # spread so the +font color labels don't collide
-    # split — casal: stacked groomsman + bridesmaid sections. This panel holds
-    # TWO paragraphs + TWO palettes, so it can't take the full +34% without the
-    # bodies running into the swatches — capped at ~+18% here.
+        circle_spacing_px: 190  # spread so the 51px color labels don't collide
+    # split — casal: stacked groomsman + bridesmaid sections. Bodies floored at
+    # the Sua Missão size (51); the taller A4-aspect canvas gives the room.
     split:
       overall_title_size_px: 90
       section_title_size_px: 60
-      body_size_px: 40
-      body_wrap_chars: 47
-      color_label_size_px: 36
+      body_size_px: 51
+      body_wrap_chars: 37        # narrower wrap so the 51px body keeps its width
+      color_label_size_px: 51
       overall_title_y_top_offset_px: 30
-      groomsman_title_y_factor: 0.19
-      groomsman_body_y_factor: 0.30
-      groomsman_palette_y_factor: 0.45
-      bridesmaid_title_y_factor: 0.56
-      bridesmaid_body_y_factor: 0.67
-      bridesmaid_palette_y_factor: 0.85
+      groomsman_title_y_factor: 0.18
+      groomsman_body_y_factor: 0.31
+      groomsman_palette_y_factor: 0.46
+      bridesmaid_title_y_factor: 0.57
+      bridesmaid_body_y_factor: 0.70
+      bridesmaid_palette_y_factor: 0.86
       palette:
         circle_radius_px: 60
-        circle_spacing_px: 90
+        circle_spacing_px: 190
   front_cover:                # tips block ("Tips for the big day")  (body +34%)
     title_size_px: 100
     body_size_px: 56
