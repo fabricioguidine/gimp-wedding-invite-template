@@ -50,15 +50,15 @@ externo:
     subtitle_size_px: 100
     subtitle_y_factor: 0.82
   middle:                     # calendar + ceremony info
-    weekday_size_px: 70
-    date_size_px: 42
-    arrival_size_px: 36
-    venue_size_px: 36
-    address_size_px: 32
+    weekday_size_px: 94
+    date_size_px: 56
+    arrival_size_px: 48
+    venue_size_px: 48
+    address_size_px: 43
     calendar:
       cell_size_px: 80
-      header_size_px: 36
-      day_size_px: 40
+      header_size_px: 48
+      day_size_px: 54
       highlight_radius_px: 36
       highlight_stroke_px: 3
       weekday_labels: ["D", "S", "T", "Q", "Q", "S", "S"]   # PT Dom-Sáb
@@ -69,29 +69,29 @@ externo:
 interno:
   back_cover:                 # convite (missão)
     title_size_px: 100
-    body_size_px: 38
-    body_wrap_chars: 24
-    highlight_size_px: 72       # "Aceita ser nosso Pajem?" em destaque
+    body_size_px: 51
+    body_wrap_chars: 30         # widened with the font so the block keeps its height
+    highlight_size_px: 72       # "Aceita ser nosso Pajem?" em destaque (kept — already big)
     highlight_wrap_chars: 16
-    verse_size_px: 32
-    verse_wrap_chars: 30
-    ref_size_px: 28
+    verse_size_px: 43
+    verse_wrap_chars: 34
+    ref_size_px: 38
   middle:
     # single — one child role: title + body + outfit palette + names.
     # role_title_size_px is smaller than bridesmaid (120 vs 140) because the
     # child roles are two words ("Flower Girl", "Ring Bearer", "Bear Bearer").
     single:
       role_title_size_px: 120
-      body_size_px: 42
-      body_wrap_chars: 24
-      palette_subtitle_size_px: 46
-      color_label_size_px: 40
+      body_size_px: 56
+      body_wrap_chars: 32       # widened with the font (fewer, wider lines)
+      palette_subtitle_size_px: 62
+      color_label_size_px: 48
       palette:
         circle_radius_px: 60
-        circle_spacing_px: 70
-  front_cover:                # tips block ("Tips for the big day")
+        circle_spacing_px: 110  # spread so the +font color labels don't collide
+  front_cover:                # tips block ("Tips for the big day")  (body +34%)
     title_size_px: 100
-    body_size_px: 42
+    body_size_px: 56
     icon_size_px: 130
 
 background_image:

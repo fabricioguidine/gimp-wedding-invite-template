@@ -380,7 +380,10 @@ def draw_tips_block(image, layout, content, panel_rects, panel_groups):
     icon_size = int(cfg['icon_size_px'])
     text_padding = 80
     text_w = pw - 2 * (inner + text_padding)
-    chars_per_line = max(18, int(text_w / 19))
+    # avg glyph advance scales with the body font (~0.45 * size for Cormorant);
+    # keep the wrap width in sync so a larger tips body doesn't overrun the panel.
+    avg_glyph_px = max(1.0, int(cfg['body_size_px']) * 0.45)
+    chars_per_line = max(14, int(text_w / avg_glyph_px))
 
     block_top = py + int(ph * 0.20)
     block_bottom = py + ph - inner - 40
