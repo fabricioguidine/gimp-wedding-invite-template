@@ -31,6 +31,11 @@ gi.require_version('Gimp', '3.0')
 gi.require_version('Gegl', '0.4')
 from gi.repository import Gimp, Gegl, Gio
 
+# Shared primitives live in src/ — make it importable under the GIMP batch
+# interpreter so a4_render is available for the A4 print export.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import a4_render  # noqa: E402
+
 
 def _env(name):
     v = os.environ.get(name)
@@ -77,6 +82,14 @@ def _export(xcf_path):
     return png, pdf
 
 
+def _export_a4(xcf_path):
+    """Emit an A4-landscape print version (<stem>_a4.pdf) beside the XCF."""
+    xcf = Path(xcf_path)
+    a4_pdf = xcf.with_name(xcf.stem + '_a4.pdf')
+    a4_render.render_to_a4(str(xcf), str(a4_pdf))
+    return a4_pdf
+
+
 def _build_one(name, module_dir, layout, content, bg_path, run_dir):
     """Build one module + export its XCFs to PNG/PDF."""
     run_dir = Path(run_dir)
@@ -88,12 +101,16 @@ def _build_one(name, module_dir, layout, content, bg_path, run_dir):
     )
     if not xcf_paths:
         raise RuntimeError("module '{}' did not return any XCF paths".format(name))
+    trifold = bool(layout.get('fold'))
     print('[module_runner] {} produced {} XCF(s):'.format(name, len(xcf_paths)))
     for xcf in xcf_paths:
         png, pdf = _export(xcf)
         print('  + {}'.format(Path(xcf).name))
         print('     -> {}'.format(Path(png).name))
         print('     -> {}'.format(Path(pdf).name))
+        if trifold:
+            a4 = _export_a4(xcf)
+            print('     -> {} (A4 paisagem, pronto p/ impressão)'.format(a4.name))
 
 
 def main():

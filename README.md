@@ -64,8 +64,15 @@ modules/wedding-invite/outputs/my-run/
 ├── _layout.json
 ├── wedding-invite.xcf     # editable GIMP source
 ├── wedding-invite.png     # 300 DPI preview
-└── wedding-invite.pdf     # print-ready
+└── wedding-invite.pdf     # print-ready (native size)
 ```
+
+Tri-fold modules (`wedding-bridesmaid`, `wedding-pages`) additionally emit a
+`*_a4.pdf` per side: the 30x15 cm leaflet scaled to fit **A4 landscape**,
+centered, with thin fold marks at the thirds. Print it at **A4 landscape,
+scale 100% / actual size** (not "fit to page") so the text stays at the
+designed size. The plain `.pdf` remains the native 30x15 cm artwork for shops
+that print custom sizes. (Standalone: `tools/export_pdf_a4.py`.)
 
 ## Customizing
 
