@@ -30,7 +30,7 @@ def _draw_fold_marks(page, bg, geo, dpi):
         for y in (top_y, bot_y):
             page.select_rectangle(Gimp.ChannelOps.REPLACE,
                                   fx - thickness // 2, y, thickness, tick)
-            bg.fill(Gimp.FillType.FOREGROUND)
+            bg.edit_fill(Gimp.FillType.FOREGROUND)   # selection-aware; fill() floods the whole layer
     Gimp.Selection.none(page)
 
 
