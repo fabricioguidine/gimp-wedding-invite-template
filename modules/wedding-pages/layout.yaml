@@ -3,9 +3,11 @@
 # Both variants are single-role, so interno.middle only needs `single`.
 
 canvas:
-  width_px: 3543      # ~30cm @ 300 DPI
-  height_px: 1772     # ~15cm @ 300 DPI
+  width_px: 3390      # A4-landscape printable width  (297mm - 2*5mm @ 300 DPI)
+  height_px: 2362     # A4-landscape printable height (210mm - 2*5mm @ 300 DPI)
   dpi: 300
+  # Canvas matches the A4 printable area so the A4 export sits with EQUAL 5mm
+  # margins on all four sides (no distortion). Panels are 3390/3 wide x 2362 tall.
   background_color: "#FFFFFF"
 
 # Olive gold — matches the rest of the suite.
@@ -46,7 +48,7 @@ fonts:
 externo:
   front_cover:                # cover art (top) + title + couple subtitle
     title_size_px: 96
-    title_top_padding_px: 620   # pushed down — the top of the panel holds the art
+    title_top_padding_px: 880   # pushed below the cover art (taller A4-aspect canvas)
     subtitle_size_px: 100
     subtitle_y_factor: 0.82
   middle:                     # calendar + ceremony info

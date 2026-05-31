@@ -5,9 +5,11 @@
 # per-variant difference is the interno middle panel: single-role vs split.
 
 canvas:
-  width_px: 3543      # ~30cm @ 300 DPI
-  height_px: 1772     # ~15cm @ 300 DPI
+  width_px: 3390      # A4-landscape printable width  (297mm - 2*5mm @ 300 DPI)
+  height_px: 2362     # A4-landscape printable height (210mm - 2*5mm @ 300 DPI)
   dpi: 300
+  # Canvas matches the A4 printable area so the A4 export sits with EQUAL 5mm
+  # margins on all four sides (no distortion). Panels are 3390/3 wide x 2362 tall.
   background_color: "#FFFFFF"
 
 # Olive gold — same color as the wedding-invite module to match the suite.
@@ -94,7 +96,7 @@ interno:
       overall_title_size_px: 90
       section_title_size_px: 60
       body_size_px: 40
-      body_wrap_chars: 50
+      body_wrap_chars: 47
       color_label_size_px: 36
       overall_title_y_top_offset_px: 30
       groomsman_title_y_factor: 0.19
