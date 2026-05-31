@@ -449,15 +449,20 @@ def draw_palette_with_labels(image, layout, panel_rects, panel_groups, *,
     )
     px, py, pw, ph = panel_rects[panel_name]
     cy_palette = py + int(ph * y_factor)
-    label_y = cy_palette + radius + int(label_y_offset_px)
+    # top of the label block (anchor by top so 1- and 2-line labels line up and
+    # 2-line labels don't ride up into the swatch)
+    label_top = cy_palette + radius + int(label_y_offset_px)
 
     parent = panel_groups[panel_name]
     for i, name in enumerate(names):
+        # stack multi-word names (e.g. "Marsala claro") so wide labels stay
+        # inside the panel border instead of overrunning the margin
+        wrapped = '\n'.join(name.split())
         lbl = make_text_layer(image, parent,
                               '{}_color_label_{}'.format(layer_prefix, i),
-                              name, body_font, int(label_size_px), color)
+                              wrapped, body_font, int(label_size_px), color)
         lbl.set_justification(Gimp.TextJustification.CENTER)
-        center_layer_at(lbl, centers[i], label_y)
+        lbl.set_offsets(centers[i] - lbl.get_width() // 2, label_top)
 
 
 # ============================================================ misc helpers

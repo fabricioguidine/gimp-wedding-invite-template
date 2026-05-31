@@ -90,7 +90,7 @@ interno:
       color_label_size_px: 51   # floor at Sua Missão body size
       palette:
         circle_radius_px: 60
-        circle_spacing_px: 150  # spread so the 51px color labels don't collide
+        circle_spacing_px: 110  # labels are stacked (1 word/line), so swatches sit naturally
   front_cover:                # tips block ("Tips for the big day")  (body +34%)
     title_size_px: 100
     body_size_px: 56

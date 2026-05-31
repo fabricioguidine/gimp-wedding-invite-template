@@ -88,7 +88,7 @@ interno:
       color_label_size_px: 51   # floor at Sua Missão body size
       palette:
         circle_radius_px: 60
-        circle_spacing_px: 190  # spread so the 51px color labels don't collide
+        circle_spacing_px: 110  # labels are stacked (1 word/line), so swatches sit naturally
     # split — casal: stacked groomsman + bridesmaid sections. Bodies floored at
     # the Sua Missão size (51); the taller A4-aspect canvas gives the room.
     split:
@@ -98,15 +98,15 @@ interno:
       body_wrap_chars: 37        # narrower wrap so the 51px body keeps its width
       color_label_size_px: 51
       overall_title_y_top_offset_px: 30
-      groomsman_title_y_factor: 0.18
-      groomsman_body_y_factor: 0.31
-      groomsman_palette_y_factor: 0.46
-      bridesmaid_title_y_factor: 0.57
-      bridesmaid_body_y_factor: 0.70
-      bridesmaid_palette_y_factor: 0.86
+      groomsman_title_y_factor: 0.135
+      groomsman_body_y_factor: 0.26
+      groomsman_palette_y_factor: 0.40
+      bridesmaid_title_y_factor: 0.52
+      bridesmaid_body_y_factor: 0.66
+      bridesmaid_palette_y_factor: 0.81
       palette:
         circle_radius_px: 60
-        circle_spacing_px: 190
+        circle_spacing_px: 90
   front_cover:                # tips block ("Tips for the big day")  (body +34%)
     title_size_px: 100
     body_size_px: 56
