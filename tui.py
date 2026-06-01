@@ -3,6 +3,8 @@
 Flow:
   1. Pick a module (only those with build.py are listed as active).
   2. Type a run name (default = ISO timestamp).
+  2b. Tick which variants to build (checklist; all by default) — or pass
+      --variants pageboy,flowergirl to skip the prompt.
   3. Optionally provide a background-image path.
   4. For each leaf field in content.yaml, accept the default (just press Enter)
      or type a replacement. Nested structure preserved.
@@ -72,6 +74,51 @@ def _ask_path(message: str, default: str = '') -> str:
     if questionary is not None:
         return questionary.path(message, default=default, only_directories=False).ask() or default
     return _ask_text(message, default)
+
+
+def _ask_checkbox(message: str, choices: list[str]) -> list[str]:
+    """Multi-select checklist. Returns the chosen subset (defaults to all)."""
+    if questionary is not None:
+        chosen = questionary.checkbox(
+            message,
+            choices=[questionary.Choice(c, checked=True) for c in choices],
+        ).ask()
+        return chosen if chosen else list(choices)
+    print(message)
+    for i, c in enumerate(choices):
+        print('  {}. {}'.format(i + 1, c))
+    raw = input('Pick (comma-separated numbers, Enter = all): ').strip()
+    if not raw:
+        return list(choices)
+    picked = []
+    for tok in raw.split(','):
+        try:
+            idx = int(tok) - 1
+            if 0 <= idx < len(choices):
+                picked.append(choices[idx])
+        except ValueError:
+            pass
+    return picked or list(choices)
+
+
+def _select_variants(content: dict[str, Any], requested: str | None,
+                     interactive: bool) -> dict[str, Any]:
+    """Filter content['variants'] to a chosen subset (checklist / --variants /
+    all). The build engine skips variants absent from content['variants']."""
+    variants = content.get('variants')
+    if not isinstance(variants, dict) or len(variants) <= 1:
+        return content
+    keys = list(variants.keys())
+    if requested:
+        wanted = {v.strip() for v in requested.split(',') if v.strip()}
+        chosen = [k for k in keys if k in wanted] or keys
+    elif interactive:
+        chosen = _ask_checkbox('Which variants to build? (space toggles, enter confirms)', keys)
+    else:
+        chosen = keys
+    content = dict(content)
+    content['variants'] = {k: variants[k] for k in keys if k in chosen}
+    return content
 
 
 # ------------------------------------------------------------------ discovery
@@ -231,6 +278,8 @@ def _build_all(modules: list[dict[str, Any]], run_name: str) -> int:
 def _parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description='Wedding-stationery module launcher.')
     p.add_argument('--module', help='Skip module picker (e.g. wedding-invite).')
+    p.add_argument('--variants', help='Comma-separated subset of variants to '
+                   'build (e.g. "pageboy,flowergirl"). Default: all.')
     p.add_argument('--run-name', help='Skip run-name prompt.')
     p.add_argument('--bg', dest='bg', help='Background image path.')
     p.add_argument('--non-interactive', action='store_true',
@@ -294,6 +343,7 @@ def main() -> int:
     content = yaml.safe_load(
         (module['dir'] / 'content.yaml').read_text(encoding='utf-8')
     )
+    content = _select_variants(content, args.variants, not args.non_interactive)
     if not args.non_interactive:
         print('\nEdit each text field, or press Enter to keep the default.')
         print('Tip: keep replacement text a similar length to avoid border clipping.\n')
