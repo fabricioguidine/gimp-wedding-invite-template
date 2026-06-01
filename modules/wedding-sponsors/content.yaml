@@ -1,10 +1,14 @@
-# wedding-bridesmaid — text content (English placeholders).
+# wedding-sponsors — text content (English placeholders).
 # Shared blocks (couple/date/ceremony/mission/tips) apply to every variant.
 # Per-variant cover title + role data live under `variants:`.
 
 couple:
   bride: "Emily"
-  groom: "James Thomas"
+  groom: "James"
+
+# Print paper: "a4" or "letter" (US). The canvas is sized to the chosen paper's
+# printable area, so margins/text/distribution adapt automatically.
+paper: "a4"
 
 # Canvas background — editable here (overrides layout.yaml). Drop a PNG at
 # modules/<this>/inputs/background.png for a full-bleed image background.
@@ -15,7 +19,7 @@ background_color: "#FFFFFF"
 images:
   logo_pct: 1.0
 
-# Date data — drives the calendar highlight + the date-by-extenso text.
+# Date data — drives the calendar highlight + the date text.
 date:
   year: 2026
   month: 10                       # October
@@ -25,14 +29,14 @@ date:
   locale: "en"                    # weekday initials: en / pt / es / fr / it / de
 
 ceremony:
-  arrival_label: "Bridal party arrival"
+  arrival_label: "Wedding party arrival"
   arrival_time: "16:30"
   venue: "Our Lady of the Rosary Parish Church"
   address: "123 Sample Avenue, Suite 230"
 
 # Mission block — left panel of the internal side. Same for all variants.
 mission:
-  title: "Your Mission"           # PT: "Sua Missão"
+  title: "Your Mission"
   body: |
     To pray, to bless, to advise, to walk beside, to encourage,
     to care, to bring joy, to love, and to witness our union and our
@@ -58,12 +62,14 @@ tips:
       text: "Enjoy yourself to the fullest!"
 
 # Per-variant data. Each variant overrides `cover` and supplies either a single
-# `role` (madrinha / padrinho) or a split `roles` block (casal).
+# `role` (bridesmaid / groomsman) or a split `roles` block (couple).
+# Cover titles use explicit line breaks so multi-word roles stay on one line.
 variants:
-  # madrinha — PT: "Manual das Madrinhas"
-  madrinha:
+  bridesmaid:
     cover:
-      title: "Bridesmaid Manual"
+      title: |-
+        Bridesmaid
+        Manual
     role:
       title: "Bridesmaid"
       body: "We want you to feel beautiful and confident on this special day. Your presence beside us makes the celebration even more meaningful."
@@ -77,27 +83,29 @@ variants:
         - "Wine"
         - "Dark wine"
 
-  # padrinho — PT: "Manual do Padrinho". Gray suit / white shirt / wine tie.
-  padrinho:
+  groomsman:
     cover:
-      title: "Groomsman Manual"
+      title: |-
+        Groomsman
+        Manual
     role:
       title: "Groomsman"
       body: "To look even more elegant, please wear a Medium Gray suit with a White shirt. For a special touch matching our palette, the tie will be Wine. We are counting on you to make this long-awaited day shine!"
       palette_subtitle: "Color palette - Groomsman"
       colors:
-        - "#878E99"     # gray suit
-        - "#FFFFFF"     # white shirt
-        - "#5C0808"     # wine tie
+        - "#878E99"
+        - "#FFFFFF"
+        - "#5C0808"
       color_names:
         - "Gray"
         - "White"
         - "Wine"
 
-  # casal — PT: "Manual dos Padrinhos" (when both attend as a couple).
-  casal:
+  couple:
     cover:
-      title: "Couple Manual"
+      title: |-
+        Couple
+        Manual
     roles:
       overall_title: "Couple"
       groomsman:

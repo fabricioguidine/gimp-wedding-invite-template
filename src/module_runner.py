@@ -35,6 +35,7 @@ from gi.repository import Gimp, Gegl, Gio
 # interpreter so a4_render is available for the A4 print export.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import a4_render  # noqa: E402
+import paper as paper_module  # noqa: E402
 
 
 def _env(name):
@@ -82,12 +83,13 @@ def _export(xcf_path):
     return png, pdf
 
 
-def _export_a4(xcf_path):
-    """Emit an A4-landscape print version (<stem>_a4.pdf) beside the XCF."""
+def _export_print(xcf_path, paper):
+    """Emit a print-ready landscape version (<stem>_<paper>.pdf) beside the XCF,
+    imposed on the chosen paper (a4 / letter) with equal margins + fold marks."""
     xcf = Path(xcf_path)
-    a4_pdf = xcf.with_name(xcf.stem + '_a4.pdf')
-    a4_render.render_to_a4(str(xcf), str(a4_pdf))
-    return a4_pdf
+    out_pdf = xcf.with_name('{}_{}.pdf'.format(xcf.stem, paper))
+    a4_render.render_to_a4(str(xcf), str(out_pdf), paper=paper)
+    return out_pdf
 
 
 def _build_one(name, module_dir, layout, content, bg_path, run_dir):
@@ -102,6 +104,7 @@ def _build_one(name, module_dir, layout, content, bg_path, run_dir):
     if not xcf_paths:
         raise RuntimeError("module '{}' did not return any XCF paths".format(name))
     trifold = bool(layout.get('fold'))
+    paper = paper_module.normalize(content.get('paper'))
     print('[module_runner] {} produced {} XCF(s):'.format(name, len(xcf_paths)))
     for xcf in xcf_paths:
         png, pdf = _export(xcf)
@@ -109,8 +112,8 @@ def _build_one(name, module_dir, layout, content, bg_path, run_dir):
         print('     -> {}'.format(Path(png).name))
         print('     -> {}'.format(Path(pdf).name))
         if trifold:
-            a4 = _export_a4(xcf)
-            print('     -> {} (A4 paisagem, pronto p/ impressão)'.format(a4.name))
+            out = _export_print(xcf, paper)
+            print('     -> {} ({} landscape, print-ready)'.format(out.name, paper))
 
 
 def main():

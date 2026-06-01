@@ -1,8 +1,8 @@
-"""Renderiza a arte (XCF/PNG) imposta numa folha A4 paisagem via GIMP 3.
+"""Render the artwork (XCF/PNG) imposed on a landscape print sheet via GIMP 3.
 
-Escala o tri-fold pra caber em A4, centraliza e desenha marcas de dobra finas
-nas margens (nos dois terços). Mantém 300 DPI → imprime no tamanho calculado.
-A geometria vem de a4_impose (puro); aqui é só o desenho no GIMP.
+Scales the tri-fold to fit the chosen paper (a4 / letter), centers it, and draws
+thin fold marks in the margins (at the two thirds). Keeps 300 DPI so it prints
+at the computed size. Geometry comes from a4_impose (pure); this only draws.
 """
 
 import gi
@@ -11,6 +11,7 @@ gi.require_version('Gegl', '0.4')
 from gi.repository import Gimp, Gegl, Gio
 
 from a4_impose import compute, mm_to_px
+import paper as paper_module
 
 
 def _color(r, g, b):
@@ -34,12 +35,14 @@ def _draw_fold_marks(page, bg, geo, dpi):
     Gimp.Selection.none(page)
 
 
-def render_to_a4(src_path, dst_path, margin_mm=5.0, fold_marks=True, dpi=300):
+def render_to_a4(src_path, dst_path, paper='a4', margin_mm=5.0,
+                 fold_marks=True, dpi=300):
     src = Gimp.file_load(Gimp.RunMode.NONINTERACTIVE,
                          Gio.File.new_for_path(src_path))
     src.flatten()
     draw = src.get_layers()[0]
-    geo = compute(src.get_width(), src.get_height(), margin_mm, dpi)
+    geo = compute(src.get_width(), src.get_height(), margin_mm, dpi,
+                  page=paper_module.sheet_px(paper, dpi))
 
     page = Gimp.Image.new(geo['page_w'], geo['page_h'], Gimp.ImageBaseType.RGB)
     page.set_resolution(dpi, dpi)
