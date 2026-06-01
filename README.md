@@ -2,7 +2,7 @@
 
 <img src=".github/assets/banner.svg" alt="gimp-wedding-invite-template" width="100%">
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-a371f7.svg)](LICENSE) [![Python 3.13](https://img.shields.io/badge/Python-3.13-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/) [![Platform: Windows](https://img.shields.io/badge/Platform-Windows-0078D6.svg?logo=windows&logoColor=white)](#requirements) [![GIMP 3.2](https://img.shields.io/badge/GIMP-3.2-5C5543.svg?logo=gimp&logoColor=white)](https://www.gimp.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-a371f7.svg)](LICENSE) [![Python 3.13](https://img.shields.io/badge/Python-3.13-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/) [![Platform: Windows](https://img.shields.io/badge/Platform-Windows-0078D6.svg?logo=windows&logoColor=white)](#requirements) [![GIMP 3.2](https://img.shields.io/badge/GIMP-3.2-5C5543.svg?logo=gimp&logoColor=white)](https://www.gimp.org/) [![Tests: pytest](https://img.shields.io/badge/tests-pytest-0A9EDC.svg?logo=pytest&logoColor=white)](pytest.ini)
 
 </div>
 
