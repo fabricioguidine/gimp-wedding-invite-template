@@ -1,7 +1,7 @@
-"""Sondagem do .xcf gerado: inspeciona dimensões, DPI, layers e
-amostra a cor de um pixel central pra validar o fill.
+"""Probe a generated .xcf: inspect dimensions, DPI, layers, and sample
+the colour of a central pixel to validate the fill.
 
-Uso (a partir do run-helper):
+Usage (from the run helper):
     gimp-console-3.2.exe -i -d -f --batch-interpreter=python-fu-eval \
         -b "import sys; sys.path.insert(0, r'.../tools'); import inspect_xcf; inspect_xcf.run(r'.../convite.xcf')"
 """
@@ -17,14 +17,14 @@ def run(xcf_path):
     gio_file = Gio.File.new_for_path(xcf_path)
     image = Gimp.file_load(Gimp.RunMode.NONINTERACTIVE, gio_file)
 
-    print('--- INSPEÇÃO DO XCF ---')
+    print('--- XCF INSPECTION ---')
     print('Path:        ', xcf_path)
-    print('Dimensões:   ', image.get_width(), 'x', image.get_height())
+    print('Dimensions:  ', image.get_width(), 'x', image.get_height())
     xres, yres = image.get_resolution().xresolution, image.get_resolution().yresolution
     print('DPI (x, y):  ', xres, yres)
 
     layers = image.get_layers()
-    print('Layers (topo -> base):')
+    print('Layers (top -> bottom):')
     def _walk(layer_list, indent=0):
         for l in layer_list:
             kind = 'group' if l.is_group() else 'layer'
@@ -33,22 +33,21 @@ def run(xcf_path):
                 _walk(l.get_children(), indent + 1)
     _walk(layers)
 
-    # Amostra um pixel central da camada bg
+    # Sample a central pixel of the bg layer
     bg = next((l for l in layers if l.get_name() == 'bg'), None)
     if bg is not None:
         cx, cy = image.get_width() // 2, image.get_height() // 2
         color = bg.get_pixel(cx, cy)
         if hasattr(color, 'get_rgba'):
-            print('bg @ centro: RGBA =', color.get_rgba())
+            print('bg @ center: RGBA =', color.get_rgba())
         else:
-            print('bg @ centro:', color)
+            print('bg @ center:', color)
 
-    # Amostra a layer 'borders' num ponto onde a borda deveria estar
+    # Sample the 'borders' layer where the border should be
     bd = next((l for l in layers if l.get_name() == 'borders'), None)
     if bd is not None:
-        # Margem interna ~118px; pixel a 120px de cada borda do canvas
-        # deveria estar em cima do stroke (perto da linha esquerda do
-        # painel mais à esquerda).
+        # Inner margin ~118px; a pixel 118px from the canvas edge should sit
+        # on the stroke (near the left line of the left-most panel).
         sx, sy = 118, image.get_height() // 2
         c = bd.get_pixel(sx, sy)
         if hasattr(c, 'get_rgba'):
@@ -56,7 +55,7 @@ def run(xcf_path):
         else:
             print('borders @ ({},{}):'.format(sx, sy), c)
 
-    # Paths (vetores editáveis)
+    # Paths (editable vectors)
     paths = image.get_paths()
     if paths:
         print('Paths:')
@@ -64,7 +63,7 @@ def run(xcf_path):
             n_strokes = len(p.get_strokes())
             print('  - {} ({} stroke(s))'.format(p.get_name(), n_strokes))
     else:
-        print('Paths:        (nenhum)')
+        print('Paths:        (none)')
 
     # Guides
     g = image.find_next_guide(0)

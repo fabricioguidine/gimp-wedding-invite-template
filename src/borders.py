@@ -1,10 +1,9 @@
-"""Bordas decorativas em volta de cada painel.
+"""Decorative borders around each panel.
 
-Sempre cria um único layer raster 'borders' com o stroke pintado.
-Se layout.borders.as_paths == true (default), cria também um
-Gimp.Path por painel (visível no diálogo "Paths" do GIMP), de
-forma que você possa editar os retângulos como vetor —
-arrastar cantos, redimensionar — sem mexer nos pixels.
+Always creates a single raster layer 'borders' with the stroke painted. If
+layout.borders.as_paths == true (default), it also creates one Gimp.Path per
+panel (visible in GIMP's "Paths" dialog) so the rectangles can be edited as
+vectors — drag corners, resize — without touching pixels.
 """
 
 import gi
@@ -16,11 +15,11 @@ from document import make_color
 
 
 def draw_borders(image, layout, panel_rects):
-    """Desenha as bordas. Retorna o layer raster (ou None se desativado).
+    """Draw the borders. Returns the raster layer (or None if disabled).
 
-    Lê em layout.borders:
-      raster:    se True, pinta a layer raster 'borders' (default True)
-      as_paths:  se True, cria Gimp.Path editáveis (default True)
+    Reads from layout.borders:
+      raster:    if True, paint the raster 'borders' layer (default True)
+      as_paths:  if True, create editable Gimp.Path objects (default True)
     """
     cfg = layout['borders']
     margin = int(cfg['inner_margin_px'])
@@ -36,7 +35,7 @@ def draw_borders(image, layout, panel_rects):
 
 
 def _draw_raster_borders(image, cfg, panel_rects, margin):
-    """Pinta os retângulos como pixels num único layer 'borders'."""
+    """Paint the rectangles as pixels on a single 'borders' layer."""
     stroke_width = float(cfg['stroke_width_px'])
     color = make_color(cfg['color'])
     canvas_w = image.get_width()
@@ -56,7 +55,7 @@ def _draw_raster_borders(image, cfg, panel_rects, margin):
     Gimp.context_push()
     try:
         Gimp.context_set_foreground(color)
-        # StrokeMethod.LINE evita dependência de brush (importante com -d).
+        # StrokeMethod.LINE avoids a brush dependency (important with -d).
         Gimp.context_set_stroke_method(Gimp.StrokeMethod.LINE)
         Gimp.context_set_line_width(stroke_width)
         Gimp.context_set_line_cap_style(Gimp.CapStyle.BUTT)
@@ -79,10 +78,10 @@ def _draw_raster_borders(image, cfg, panel_rects, margin):
 
 
 def _create_panel_paths(image, panel_rects, margin):
-    """Cria um Gimp.Path retangular por painel (vetor editável).
+    """Create one rectangular Gimp.Path per panel (editable vector).
 
-    Cada path tem 4 ancoragens com control points coincidentes
-    (cantos retos). Visível no diálogo "Paths" do GIMP.
+    Each path has 4 anchors with coincident control points (square corners).
+    Visible in GIMP's "Paths" dialog.
     """
     for name, (px, py, pw, ph) in panel_rects.items():
         x1 = px + margin
@@ -93,9 +92,9 @@ def _create_panel_paths(image, panel_rects, margin):
         path = Gimp.Path.new(image, 'border_{}'.format(name))
         image.insert_path(path, None, 0)
 
-        # Em GIMP 3, stroke_new_from_points para BEZIER espera lista plana
-        # de doubles: [cp_in_x, cp_in_y, anchor_x, anchor_y, cp_out_x, cp_out_y]
-        # por âncora. Cantos retos = control points iguais à âncora.
+        # In GIMP 3, stroke_new_from_points for BEZIER expects a flat list of
+        # doubles: [cp_in_x, cp_in_y, anchor_x, anchor_y, cp_out_x, cp_out_y]
+        # per anchor. Square corners = control points equal to the anchor.
         corners = [(x1, y1), (x2, y1), (x2, y2), (x1, y2)]
         flat = []
         for ax, ay in corners:

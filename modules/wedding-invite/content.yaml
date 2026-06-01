@@ -30,7 +30,7 @@ couple:
 
 invitation: "INVITE YOU TO THE CELEBRATION OF THEIR WEDDING"   # 46 (PT: 43)
 
-day: "Sunday"             # 6 chars, same as PT "Sábado"
+day: "Sunday"             # 6 chars
 date:
   day: 10
   month_name: "October"   # PT: "Outubro" — same length-ish

@@ -1,10 +1,10 @@
-"""Paleta de cores das madrinhas.
+"""Colour-swatch row.
 
-Desenha N círculos coloridos preenchidos, enfileirados horizontalmente,
-centralizados no painel da madrinha. Cores em invite.madrinha.palette;
-geometria (raio, espaçamento) em layout.panels.madrinha.palette.
-
-Vai todo num único layer raster 'palette' dentro do grupo panel_madrinha.
+Draws N filled colour circles in a horizontal row, centered in the host panel.
+Colours come from invite['swatches']['palette']; geometry (radius, spacing)
+from layout['panels']['swatches']['palette']. Everything goes on a single
+raster layer inside the host panel group. ('swatches' is an internal shim key
+the tri-fold engine maps onto the real panel.)
 """
 
 import gi
@@ -15,13 +15,14 @@ from document import make_color
 
 
 def compute_circle_centers(layout, panel_rects, panel_name, n_circles):
-    """Retorna lista com X centers das N bolinhas com spacing fixo do
-    layout.yaml, centralizadas no meio do painel (não estica até as bordas).
+    """Return the list of X centers for the N circles, with the fixed spacing
+    from layout.yaml, centered in the middle of the panel (not stretched to the
+    edges).
     """
     if panel_name not in panel_rects or n_circles == 0:
         return []
     px, py, pw, ph = panel_rects[panel_name]
-    pal_cfg = layout['panels']['madrinha']['palette']
+    pal_cfg = layout['panels']['swatches']['palette']
     radius = int(pal_cfg['circle_radius_px'])
     spacing = int(pal_cfg['circle_spacing_px'])
     diameter = radius * 2
@@ -33,24 +34,24 @@ def compute_circle_centers(layout, panel_rects, panel_name, n_circles):
 
 
 def draw_palette(image, layout, invite, panel_rects, panel_groups,
-                 panel_name='madrinha', y_factor=0.78, layer_name='palette'):
-    """Pinta os círculos da paleta dentro do painel indicado.
+                 panel_name='swatches', y_factor=0.78, layer_name='palette'):
+    """Paint the palette circles inside the given panel.
 
-    panel_name: chave em panel_rects (default 'madrinha').
-    y_factor:   posição vertical, fração da altura do painel (0..1).
-    layer_name: nome da layer raster gerada.
+    panel_name: key into panel_rects (default 'swatches').
+    y_factor:   vertical position, a fraction of the panel height (0..1).
+    layer_name: name of the generated raster layer.
     """
     if panel_name not in panel_rects:
-        raise RuntimeError("Painel '{}' não está na ordem configurada".format(panel_name))
+        raise RuntimeError("Panel '{}' is not in the configured order".format(panel_name))
 
     parent = panel_groups[panel_name]
     px, py, pw, ph = panel_rects[panel_name]
 
-    pal_cfg = layout['panels']['madrinha']['palette']
+    pal_cfg = layout['panels']['swatches']['palette']
     radius = int(pal_cfg['circle_radius_px'])
     diameter = radius * 2
 
-    colors_hex = list(invite['madrinha']['palette'])
+    colors_hex = list(invite['swatches']['palette'])
     n = len(colors_hex)
     if n == 0:
         return None
@@ -88,10 +89,10 @@ def draw_palette(image, layout, invite, panel_rects, panel_groups,
             image.select_ellipse(
                 Gimp.ChannelOps.REPLACE, x, y, diameter, diameter,
             )
-            # Preenche com a cor
+            # Fill with the colour
             Gimp.context_set_foreground(make_color(hex_color))
             layer.edit_fill(Gimp.FillType.FOREGROUND)
-            # Contorno fino — garante visibilidade do círculo branco no fundo creme
+            # Thin outline — keeps a white circle visible on a light background
             Gimp.context_set_foreground(border_color)
             layer.edit_stroke_selection()
 

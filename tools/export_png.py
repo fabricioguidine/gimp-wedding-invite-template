@@ -1,8 +1,8 @@
-"""Exporta o .xcf gerado pra PNG (preview pra inspeção visual).
+"""Export the generated .xcf to PNG (a preview for visual inspection).
 
-Uso:
+Usage:
   gimp-console-3.2.exe -i -d --quit --batch-interpreter=python-fu-eval \
-    -b "import sys; sys.path.insert(0, r'.../tools'); import export_png; export_png.run(r'.../convite.xcf', r'.../convite.png')"
+    -b "import sys; sys.path.insert(0, r'.../tools'); import export_png; export_png.run(r'.../art.xcf', r'.../art.png')"
 """
 
 import gi
@@ -28,5 +28,5 @@ def run(xcf_path, png_path, max_width=None):
         Gio.File.new_for_path(png_path),
         None,
     )
-    print('PNG salvo em:', png_path)
+    print('PNG saved to:', png_path)
     image.delete()

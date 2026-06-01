@@ -1,11 +1,11 @@
-# Instala Cormorant Garamond no perfil do usuário atual (sem admin).
-# Roda só uma vez. Idempotente: pula se já estiver instalada.
+# Install Cormorant Garamond into the current user profile (no admin).
+# Run once. Idempotent: skips if already installed.
 
 $ErrorActionPreference = 'Stop'
 
 $FontFamily = 'Cormorant Garamond'
 $BaseUrl = 'https://raw.githubusercontent.com/google/fonts/main/ofl/cormorantgaramond'
-# Variable fonts (cobrem Regular/Medium/SemiBold/Bold num único arquivo).
+# Variable fonts (cover Regular/Medium/SemiBold/Bold in a single file).
 $Variants = @(
     @{ UrlFile = 'CormorantGaramond%5Bwght%5D.ttf';        File = 'CormorantGaramond-VF.ttf';       Name = 'Cormorant Garamond Variable (TrueType)' },
     @{ UrlFile = 'CormorantGaramond-Italic%5Bwght%5D.ttf'; File = 'CormorantGaramond-Italic-VF.ttf'; Name = 'Cormorant Garamond Italic Variable (TrueType)' }
@@ -20,7 +20,7 @@ if (-not (Test-Path $RegKey)) { New-Item -Path $RegKey -Force | Out-Null }
 foreach ($v in $Variants) {
     $destFile = Join-Path $DestDir $v.File
     if (Test-Path $destFile) {
-        Write-Host "[skip] $($v.File) já existe"
+        Write-Host "[skip] $($v.File) already exists"
     } else {
         $url = "$BaseUrl/$($v.UrlFile)"
         Write-Host "[get ] $url"
@@ -29,15 +29,15 @@ foreach ($v in $Variants) {
 
     $existing = Get-ItemProperty -Path $RegKey -Name $v.Name -ErrorAction SilentlyContinue
     if ($existing) {
-        Write-Host "[skip] registro '$($v.Name)' já presente"
+        Write-Host "[skip] registry entry '$($v.Name)' already present"
     } else {
         Set-ItemProperty -Path $RegKey -Name $v.Name -Value $destFile
         Write-Host "[reg ] $($v.Name)"
     }
 }
 
-# Notifica o sistema (Windows) sobre nova fonte. Apps já abertos (incluindo GIMP)
-# precisam reiniciar pra ver a fonte nova.
+# Notify Windows about the new font. Apps already open (including GIMP)
+# must restart to pick up the new font.
 Add-Type -ErrorAction SilentlyContinue @'
 using System;
 using System.Runtime.InteropServices;

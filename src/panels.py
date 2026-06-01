@@ -1,17 +1,17 @@
-"""Geometria dos três painéis do tri-fold.
+"""Geometry of the three tri-fold panels.
 
-A largura total é dividida igualmente em N painéis (default 3).
-A ordem dos painéis no canvas aberto vem do layout.yaml em
-fold.panel_order — para sanfona/Z-fold a capa fica no painel
-da direita (índice 2 quando ordem é [madrinha, save_the_date, cover]).
+The total width is split equally into N panels (default 3). The panel order in
+the open canvas comes from layout.yaml at fold.panel_order — for an accordion /
+Z-fold the cover sits in the right-hand panel (index 2 when the order is
+[back_cover, middle, front_cover]).
 """
 
 
 def compute_panel_rects(layout):
-    """Retorna dict {nome_do_painel: (x, y, w, h)} em pixels.
+    """Return a dict {panel_name: (x, y, w, h)} in pixels.
 
-    Distribui as larguras igualmente, ajustando arredondamentos para
-    garantir que a soma das larguras seja exatamente canvas.width_px.
+    Distributes the widths equally, adjusting rounding so the sum of the panel
+    widths is exactly canvas.width_px.
     """
     canvas_w = int(layout['canvas']['width_px'])
     canvas_h = int(layout['canvas']['height_px'])
