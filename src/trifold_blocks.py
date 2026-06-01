@@ -1,7 +1,6 @@
-"""Shared drawing helpers for the three bridal-party manuals
-(bridesmaid / groomsman / couple).
+"""Shared tri-fold leaflet engine (wedding-sponsors + wedding-juniors).
 
-Each manual is a tri-fold leaflet with two sides:
+Each leaflet is a tri-fold with two sides:
 
     externo (visible when folded):
         back_cover     |  middle (calendar+info)  |  front_cover (title)
@@ -9,10 +8,10 @@ Each manual is a tri-fold leaflet with two sides:
     interno (unfolded inside):
         back_cover (mission)  |  middle (role-specific)  |  front_cover (tips)
 
-The externo + the back-cover-mission + front-cover-tips are identical across
-all three manuals; only the middle interno panel varies (single-role center
-for bridesmaid/groomsman, split center for couple). So those bits live here
-and the role-specific draw_role_center stays in each module's build.py.
+The externo, the back-cover mission and the front-cover tips are identical
+across every variant; only the middle interno panel varies (single-role center
+for one person, split center for a couple). Those shared bits live here; the
+per-module variant list lives in each module's build.py.
 """
 
 from __future__ import annotations
@@ -30,11 +29,11 @@ from borders import draw_borders
 from text_utils import resolve_font, make_text_layer, center_layer_at, wrap_text
 import palette as palette_module
 import calendar_panel as calendar_module
+import paper as paper_module
 
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _ICONS_DIR = _REPO_ROOT / 'assets' / 'ornaments' / 'icons'
-_LOGO_PATH = _REPO_ROOT / 'assets' / 'ornaments' / 'logo.png'
 
 # Sunday-first weekday initials per locale (content.date.locale). Used to fill
 # the calendar header automatically instead of hardcoding it in layout.yaml.
@@ -72,6 +71,15 @@ def _clamp_pct(value, default=1.0):
 
 
 # ============================================================ canvas/setup
+def _apply_paper(layout, content):
+    """Return a layout copy whose canvas matches content.paper's printable area
+    (a4 or letter), so the leaflet prints with equal margins on that sheet."""
+    name = paper_module.normalize((content or {}).get('paper'))
+    dpi = int(layout['canvas'].get('dpi', 300))
+    cw, ch = paper_module.printable_px(name, dpi=dpi)
+    return dict(layout, canvas=dict(layout['canvas'], width_px=cw, height_px=ch))
+
+
 def build_canvas(layout, bg_path, content=None, inputs_dir=None):
     image = create_canvas(layout, None)
     # content-level background colour override (TUI-editable via content.yaml)
@@ -106,7 +114,7 @@ def _place_background(image, layout, bg_path, full=False):
             Gio.File.new_for_path(str(bg_path)),
         )
     except Exception as e:
-        print('[bridal_party] could not load bg {}: {}'.format(bg_path, e))
+        print('[trifold] could not load bg {}: {}'.format(bg_path, e))
         return
     image.insert_layer(layer, None, 0)
     layer.set_name('bg_image')
@@ -184,8 +192,10 @@ def _draw_cover(image, layout, cfg, content, panel_rects, panel_groups, color,
     if art is not None:
         blocks.append(art)
 
+    # keep the author's explicit line breaks (so e.g. "Page Boy" stays on one
+    # line); content.yaml splits the title across lines with a YAML block scalar
     title = make_text_layer(image, parent, 'cover_title',
-                            '\n'.join(content['cover']['title'].split()),
+                            content['cover']['title'].strip(),
                             resolve_font(layout, 'script_bold'),
                             int(cfg['title_size_px']), color)
     title.set_justification(Gimp.TextJustification.CENTER)
@@ -284,17 +294,21 @@ def _draw_back_cover_logo(image, layout, cfg, content, panel_rects, panel_groups
     panel = 'back_cover'
     px, py, pw, ph = panel_rects[panel]
     parent = panel_groups[panel]
-    # inputs/logo.png (user override) wins over the bundled monogram asset.
-    logo_path = _input_png(inputs_dir, 'logo.png') or _LOGO_PATH
-    if not Path(logo_path).exists():
-        return
+    # an inputs/logo.png override wins; otherwise draw a generic monogram from
+    # the couple's initials, so no personal artwork is committed.
+    override = _input_png(inputs_dir, 'logo.png')
+    if override:
+        _place_logo_image(image, override, cfg, content, px, py, pw, ph, parent)
+    else:
+        _draw_monogram(image, layout, content, px, py, pw, ph, parent)
+
+
+def _place_logo_image(image, path, cfg, content, px, py, pw, ph, parent):
     try:
-        layer = Gimp.file_load_layer(
-            Gimp.RunMode.NONINTERACTIVE, image,
-            Gio.File.new_for_path(str(logo_path)),
-        )
+        layer = Gimp.file_load_layer(Gimp.RunMode.NONINTERACTIVE, image,
+                                     Gio.File.new_for_path(str(path)))
     except Exception as e:
-        print('[bridal_party] failed to load logo: {}'.format(e))
+        print('[trifold] failed to load logo: {}'.format(e))
         return
     image.insert_layer(layer, parent, 0)
     layer.set_name('back_cover_logo')
@@ -305,9 +319,63 @@ def _draw_back_cover_logo(image, layout, cfg, content, panel_rects, panel_groups
     if cur_w == 0 or cur_h == 0:
         return
     scale = min(target_w / float(cur_w), target_h / float(cur_h))
-    new_w, new_h = max(1, int(cur_w * scale)), max(1, int(cur_h * scale))
-    layer.scale(new_w, new_h, False)
-    layer.set_offsets(px + (pw - new_w) // 2, py + (ph - new_h) // 2)
+    layer.scale(max(1, int(cur_w * scale)), max(1, int(cur_h * scale)), False)
+    layer.set_offsets(px + (pw - layer.get_width()) // 2,
+                      py + (ph - layer.get_height()) // 2)
+
+
+def _draw_monogram(image, layout, content, px, py, pw, ph, parent):
+    """Generic back-cover monogram: a ring around the couple's initials, with
+    their names and the date — all derived from content (nothing personal)."""
+    color = make_color(layout['text_color'])
+    cx, cy = px + pw // 2, py + ph // 2
+    radius = int(min(pw, ph) * 0.30)
+
+    ring = Gimp.Layer.new(image, 'monogram_ring', image.get_width(),
+                          image.get_height(), Gimp.ImageType.RGBA_IMAGE,
+                          100.0, Gimp.LayerMode.NORMAL)
+    image.insert_layer(ring, parent, 0)
+    ring.add_alpha()
+    ring.fill(Gimp.FillType.TRANSPARENT)
+    Gimp.context_push()
+    try:
+        Gimp.context_set_foreground(color)
+        Gimp.context_set_antialias(True)
+        Gimp.context_set_stroke_method(Gimp.StrokeMethod.LINE)
+        Gimp.context_set_line_width(3.0)
+        image.select_ellipse(Gimp.ChannelOps.REPLACE,
+                             cx - radius, cy - radius, 2 * radius, 2 * radius)
+        ring.edit_stroke_selection()
+        Gimp.Selection.none(image)
+    finally:
+        Gimp.context_pop()
+
+    couple = content.get('couple') or {}
+    bride = (str(couple.get('bride', '')).strip() or '?')
+    groom = (str(couple.get('groom', '')).strip() or '?')
+    script = resolve_font(layout, 'script_bold')
+    serif = resolve_font(layout, 'serif')
+
+    ini = make_text_layer(image, parent, 'monogram_initials',
+                          '{} {}'.format(bride[:1].upper(), groom[:1].upper()),
+                          script, int(radius * 0.85), color)
+    ini.set_justification(Gimp.TextJustification.CENTER)
+    center_layer_at(ini, cx, cy - int(radius * 0.10))
+
+    names = make_text_layer(image, parent, 'monogram_names',
+                            '{} & {}'.format(bride, groom).upper(),
+                            serif, max(14, int(radius * 0.14)), color)
+    names.set_justification(Gimp.TextJustification.CENTER)
+    center_layer_at(names, cx, cy + int(radius * 0.45))
+
+    date = content.get('date') or {}
+    if date.get('day') and date.get('month'):
+        dstr = '{:02d}.{:02d}.{}'.format(int(date['day']), int(date['month']),
+                                         str(date.get('year', ''))[-2:])
+        dl = make_text_layer(image, parent, 'monogram_date', dstr, serif,
+                             max(12, int(radius * 0.13)), color)
+        dl.set_justification(Gimp.TextJustification.CENTER)
+        center_layer_at(dl, cx, cy + int(radius * 0.68))
 
 
 # ============================================================ vertical layout
@@ -511,7 +579,7 @@ def split_sentences(text):
 def load_svg_icon(image, parent_group, icon_name, target_px):
     svg = _ICONS_DIR / '{}.svg'.format(icon_name)
     if not svg.exists():
-        print('[bridal_party] icon not found: {}'.format(svg))
+        print('[trifold] icon not found: {}'.format(svg))
         return None
     try:
         layer = Gimp.file_load_layer(
@@ -519,7 +587,7 @@ def load_svg_icon(image, parent_group, icon_name, target_px):
             Gio.File.new_for_path(str(svg)),
         )
     except Exception as e:
-        print('[bridal_party] failed loading SVG {}: {}'.format(icon_name, e))
+        print('[trifold] failed loading SVG {}: {}'.format(icon_name, e))
         return None
     image.insert_layer(layer, parent_group, 0)
     layer.set_name('icon_{}'.format(icon_name))
@@ -533,21 +601,28 @@ def load_svg_icon(image, parent_group, icon_name, target_px):
 
 # ============================================================ variant runner
 def run_variants(layout, content, bg_path, output_dir, module_name, variant_order):
-    """Generic driver for the bridal-party / kids tri-fold modules.
+    """Generic driver for the tri-fold modules.
 
     For each name in ``variant_order`` it merges the shared top-level content
     with ``content['variants'][name]`` and renders the externo + interno sides.
     The interno middle uses the split layout when the variant carries ``roles``
     (couple) and the single-role layout otherwise. An optional cover
-    illustration (``cover.image``) is placed when present.
+    illustration (``cover.image``) is placed when present. Variants absent from
+    ``content['variants']`` are skipped, so the TUI can build a chosen subset.
+
+    The canvas is sized to the printable area of ``content.paper`` (a4/letter),
+    so margins, text and distribution adapt to the selected paper.
 
     Returns the list of saved XCF paths (one per variant per side).
     """
+    layout = _apply_paper(layout, content)
     # modules/<name>/inputs/ may hold user override PNGs (logo/background/cover).
     inputs_dir = Path(output_dir).resolve().parent.parent / 'inputs'
     shared = {k: v for k, v in content.items() if k != 'variants'}
     out = []
     for variant in variant_order:
+        if variant not in content.get('variants', {}):
+            continue
         vc = dict(shared)
         vc.update(content['variants'][variant])
         split = 'roles' in vc
@@ -587,7 +662,7 @@ def _load_cover_art(image, layout, content, panel_rects, panel_groups,
             return None
         path = _REPO_ROOT / rel
         if not path.exists():
-            print('[bridal_party] cover art slot empty — drop {} or inputs/{}.png'
+            print('[trifold] cover art slot empty — drop {} or inputs/{}.png'
                   .format(path, variant))
             return None
     panel = 'front_cover'
@@ -597,7 +672,7 @@ def _load_cover_art(image, layout, content, panel_rects, panel_groups,
         layer = Gimp.file_load_layer(Gimp.RunMode.NONINTERACTIVE, image,
                                      Gio.File.new_for_path(str(path)))
     except Exception as e:
-        print('[bridal_party] failed cover art {}: {}'.format(path, e))
+        print('[trifold] failed cover art {}: {}'.format(path, e))
         return None
     image.insert_layer(layer, parent, 0)
     layer.set_name('cover_art')

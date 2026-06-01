@@ -1,12 +1,16 @@
-# wedding-pages — text content (English placeholders), kid-friendly tone.
-# Like the other modules, the committed template uses English placeholder text;
-# real Portuguese names/verse/venue are plugged in per-run via the TUI.
+# wedding-juniors — text content (English placeholders), kid-friendly tone.
+# The committed template uses English placeholder text; real names/verse/venue
+# are plugged in per run via the TUI and never committed.
 # Shared blocks (couple/date/ceremony/tips) apply to both variants; per-variant
 # cover/mission/role live under `variants:`.
 
 couple:
   bride: "Emily"
-  groom: "James Thomas"
+  groom: "James"
+
+# Print paper: "a4" or "letter" (US). The canvas is sized to the chosen paper's
+# printable area, so margins/text/distribution adapt automatically.
+paper: "a4"
 
 # Canvas background — editable here (overrides layout.yaml). For a full-bleed
 # photo background instead, drop a PNG at modules/<this>/inputs/background.png.
@@ -16,12 +20,12 @@ background_color: "#FFFFFF"
 # 1.0 = as large as fits. Swap the art by dropping PNGs into inputs/:
 #   inputs/logo.png        -> back-cover monogram
 #   inputs/background.png  -> full-bleed background
-#   inputs/pajem.png / inputs/daminha.png -> cover illustration per variant
+#   inputs/<variant>.png   -> cover illustration (e.g. inputs/pageboy.png)
 images:
   logo_pct: 1.0
   cover_pct: 1.0
 
-# Date data — drives the calendar highlight + the date-by-extenso text.
+# Date data — drives the calendar highlight + the date text.
 date:
   year: 2026
   month: 10                       # October
@@ -48,12 +52,14 @@ tips:
       text: "Have lots of fun!"
 
 # Per-variant data: cover + invite (mission) + outfit instruction (role).
+# Cover titles use explicit line breaks so multi-word roles stay on one line.
 variants:
-  # pajem (page boy / ring bearer) — navy suit
-  pajem:
+  pageboy:                        # page boy / ring bearer — navy suit
     cover:
-      title: "Page Boy Manual"
-      image: "assets/kids/pajem.png"
+      title: |-
+        Page Boy
+        Manual
+      image: "assets/kids/pageboy.png"
     mission:
       title: "Dear Page Boy,"
       body: "You are very special to us, and we would love for you to be part of our wedding! We have a very special invitation for you..."
@@ -74,11 +80,12 @@ variants:
         - "White"
         - "Black"
 
-  # daminha (flower girl) — white dress
-  daminha:
+  flowergirl:                     # flower girl — white dress
     cover:
-      title: "Flower Girl Manual"
-      image: "assets/kids/daminha.png"
+      title: |-
+        Flower Girl
+        Manual
+      image: "assets/kids/flowergirl.png"
     mission:
       title: "Dear Flower Girl,"
       body: "You are very special to us, and we would love for you to be part of our wedding! We have a very special invitation for you..."
