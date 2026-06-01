@@ -29,8 +29,10 @@ Per-deliverable wedding-stationery generator using **GIMP 3.2 + Python (GObject 
 
 - **YAML-driven content + layout** — text lives in `content.yaml`, geometry in `layout.yaml`; shared GIMP primitives live in `src/`.
 - **Interactive TUI** (`tui.py` / `run.ps1`) that walks every field in `content.yaml` and prompts for each (Enter keeps the default), or runs `--non-interactive` from defaults.
-- **Multiple delivery modules** — single-page invite, tri-fold bridal-party manuals (madrinha / padrinho / casal), and tri-fold kids manuals (pajem / daminha).
-- **Print-ready output** — each run emits an editable `.xcf`, a 300 DPI `.png` preview, and a native-size `.pdf`; tri-fold modules also emit an A4-landscape `*_a4.pdf` with equal 5 mm margins and fold marks.
+- **Multiple delivery modules** — single-page invite, tri-fold wedding-sponsor manuals (bridesmaid / groomsman / couple), and tri-fold kids manuals (page boy / flower girl).
+- **Print-ready output** — each run emits an editable `.xcf`, a 300 DPI `.png` preview, and a native-size `.pdf`; tri-fold modules also emit a landscape print PDF imposed on the chosen paper (`*_a4.pdf` / `*_letter.pdf`) with equal 5 mm margins and fold marks.
+- **Selectable paper (A4 / US Letter)** — set `paper: a4` or `paper: letter` in `content.yaml`; the canvas is sized to that sheet's printable area, so margins, text wrap and vertical distribution adapt automatically.
+- **Build checklist** — the TUI lets you tick which variants of a module to build (all of them or just a few), or pass `--variants bridesmaid,couple`.
 - **Evenly-distributed panels** — every block is measured and spaced evenly between the top and bottom margins, so panels stay balanced regardless of text length.
 - **Reproducible runs** — every run snapshots its exact `_content.yaml` / `_layout.yaml` (plus JSON bridges) into `outputs/<run>/`.
 - **Committed English-placeholder templates** — `template/template*.{png,pdf,xcf}` ship as canonical examples; real names/venues are supplied per run and never committed.
@@ -42,15 +44,15 @@ Per-deliverable wedding-stationery generator using **GIMP 3.2 + Python (GObject 
 | Module               | Status | Output                                                                     |
 |----------------------|--------|----------------------------------------------------------------------------|
 | `wedding-invite`     | active | 1 portrait page (5×7" @ 300 DPI)                                           |
-| `wedding-bridesmaid` | active | 3 tri-fold variants (madrinha / padrinho / casal), 2 sides → 6 XCFs (A4-landscape, 28.7×20 cm) |
+| `wedding-sponsors` | active | 3 tri-fold variants (bridesmaid / groomsman / couple), 2 sides → 6 XCFs (A4-landscape, 28.7×20 cm) |
 | `wedding-menu`       | TODO   | reception menu card (stub)                                                 |
-| `wedding-pages`      | active | 2 tri-fold variants (pajem / daminha), 2 sides → 4 XCFs (A4-landscape, 28.7×20 cm) |
+| `wedding-juniors`      | active | 2 tri-fold variants (page boy / flower girl), 2 sides → 4 XCFs (A4-landscape, 28.7×20 cm) |
 
 The TUI auto-discovers any directory under `modules/` that has all three of `build.py`, `layout.yaml`, and `content.yaml`; those are listed as **active**. A directory missing them (e.g. `wedding-menu`) is shown as a TODO stub and skipped by `--all`.
 
-The `wedding-bridesmaid` module builds all three bridal-party manuals in a single run. They share the common externo + mission + tips blocks via `src/bridal_party_blocks.py`; only the middle interno panel differs per variant (single-role center for madrinha / padrinho, split center for casal). Per-variant cover/role data lives under `variants:` in `content.yaml`, and `layout.yaml` splits `interno.middle` into `single:` / `split:` sub-maps.
+The `wedding-sponsors` module builds all three wedding-sponsor manuals in a single run. They share the common externo + mission + tips blocks via `src/trifold_blocks.py`; only the middle interno panel differs per variant (single-role center for bridesmaid / groomsman, split center for couple). Per-variant cover/role data lives under `variants:` in `content.yaml`, and `layout.yaml` splits `interno.middle` into `single:` / `split:` sub-maps.
 
-`wedding-pages` reuses the same tri-fold engine for the kids — `pajem` / `daminha`, both single-role — with a playful tone: a per-variant invite (`mission`), an outfit instruction (`role`), the palette swatches, kid icons (teddy / car / balloons), and an optional cover illustration slot at `assets/kids/<name>.png`.
+`wedding-juniors` reuses the same tri-fold engine for the kids — `pageboy` / `flowergirl`, both single-role — with a playful tone: a per-variant invite (`mission`), an outfit instruction (`role`), the palette swatches, kid icons (teddy / car / balloons), and an optional cover illustration slot at `assets/kids/<name>.png`.
 
 Active modules ship a committed `template/template*.{png,pdf,xcf}` rendered with **English placeholder text** of similar letter-count to the Portuguese original, so the layout stays stable when real names/venues are plugged in via the TUI. The committed templates carry **placeholders only** (no real names/contact); real content is supplied per run and never committed.
 
@@ -67,7 +69,7 @@ flowchart TD
     D --> E[gimp-console-3.2.exe<br/>-b module_runner]
     E --> F[module_runner.py<br/>single module via env, or --all via manifest]
     F --> G[modules/&lt;name&gt;/build.py<br/>run layout, content, bg_path, output_dir, module_name]
-    G --> H[src/ GIMP primitives<br/>document · panels · borders · text_utils<br/>palette · calendar_panel · bridal_party_blocks]
+    G --> H[src/ GIMP primitives<br/>document · panels · borders · text_utils<br/>palette · calendar_panel · trifold_blocks]
     H --> I[save .xcf]
     I --> J[runner: flatten + export PNG/PDF<br/>+ a4_render for tri-fold]
     J --> K[outputs/&lt;run&gt;/<br/>.xcf · .png · .pdf<br/>+ *_a4.pdf for tri-fold]
@@ -86,27 +88,44 @@ def run(layout, content, bg_path, output_dir, module_name) -> list[str]:
     """
 ```
 
-A module that produces multiple files (e.g. `wedding-bridesmaid` builds three variants × externo + interno sides) returns multiple XCF paths. Tri-fold modules set a `fold:` block in `layout.yaml`, which the runner uses to also emit the A4-landscape PDF via `src/a4_render.py`.
+A module that produces multiple files (e.g. `wedding-sponsors` builds three variants × externo + interno sides) returns multiple XCF paths. Tri-fold modules set a `fold:` block in `layout.yaml`, which the runner uses to also emit the A4-landscape PDF via `src/a4_render.py`.
 
 ## Examples
 
-All renders below are the committed `template/` files — **English placeholder content**; real names/contact are supplied per run and never committed.
+All renders below are the committed `template/` files — **English placeholder content**; real names/contact are supplied per run and never committed. Every variant has two sides: **externo** (folded cover + monogram + calendar/ceremony) and **interno** (mission + role + tips).
 
-**Bridal-party manual — `casal` (couple), tri-fold, both sides:**
+### Wedding sponsors — `wedding-sponsors`
 
-![casal externo — cover + calendar/ceremony](modules/wedding-bridesmaid/template/template_casal_externo.png)
+**Couple** (`couple`, split interno):
 
-![casal interno — mission + groomsman/bridesmaid + tips](modules/wedding-bridesmaid/template/template_casal_interno.png)
+![couple externo](modules/wedding-sponsors/template/template_couple_externo.png)
+![couple interno](modules/wedding-sponsors/template/template_couple_interno.png)
 
-**Kids manual — `pajem` (page boy), with the cover illustration:**
+**Bridesmaid** (`bridesmaid`):
 
-![pajem externo](modules/wedding-pages/template/template_pajem_externo.png)
+![bridesmaid externo](modules/wedding-sponsors/template/template_bridesmaid_externo.png)
+![bridesmaid interno](modules/wedding-sponsors/template/template_bridesmaid_interno.png)
 
-![pajem interno](modules/wedding-pages/template/template_pajem_interno.png)
+**Groomsman** (`groomsman`):
 
-**Single-page invite (`wedding-invite`, 5×7"):**
+![groomsman externo](modules/wedding-sponsors/template/template_groomsman_externo.png)
+![groomsman interno](modules/wedding-sponsors/template/template_groomsman_interno.png)
 
-<img src="modules/wedding-invite/template/template.png" alt="wedding-invite" width="340" />
+### Junior attendants — `wedding-juniors`
+
+**Page boy** (`pageboy`, with cover illustration):
+
+![pageboy externo](modules/wedding-juniors/template/template_pageboy_externo.png)
+![pageboy interno](modules/wedding-juniors/template/template_pageboy_interno.png)
+
+**Flower girl** (`flowergirl`):
+
+![flowergirl externo](modules/wedding-juniors/template/template_flowergirl_externo.png)
+![flowergirl interno](modules/wedding-juniors/template/template_flowergirl_interno.png)
+
+### Single-page invite — `wedding-invite` (5×7")
+
+![wedding-invite](modules/wedding-invite/template/template.png)
 
 ## Requirements
 
@@ -142,7 +161,12 @@ python tui.py --module wedding-invite --run-name my-run --bg "C:/path/to/bg.jpg"
 
 # Rebuild EVERY active module in ONE GIMP session (one startup instead of N)
 python tui.py --all --non-interactive
+
+# Build only some variants of a module (skips the interactive checklist)
+python tui.py --module wedding-juniors --variants pageboy --non-interactive
 ```
+
+Interactively, after the run name the TUI shows a **checklist** of the module's variants (all ticked by default) so you can build all of them or just a few. To print on **US Letter** instead of A4, set `paper: letter` in the module's `content.yaml` (or change it at the prompt).
 
 Output lands in `modules/<module>/outputs/<run-name>/`:
 
@@ -157,7 +181,7 @@ modules/wedding-invite/outputs/my-run/
 └── wedding-invite.pdf     # print-ready (native size)
 ```
 
-Tri-fold modules (`wedding-bridesmaid`, `wedding-pages`) additionally emit a `*_a4.pdf` per side. The leaflet canvas is sized to the **A4-landscape printable area** (297−2·5 mm × 210−2·5 mm @ 300 DPI), so the A4 export sits with **equal 5 mm margins on all four sides** and thin fold marks at the thirds — no distortion. Print it at **A4 landscape, scale 100% / actual size** (not "fit to page"). The plain `.pdf` is the same artwork at native size. (Geometry in `src/a4_impose.py`, GIMP render in `src/a4_render.py`, standalone CLI `tools/export_pdf_a4.py`.)
+Tri-fold modules (`wedding-sponsors`, `wedding-juniors`) additionally emit a print PDF per side, named after the paper — `*_a4.pdf` or `*_letter.pdf`. The leaflet canvas is sized to the chosen paper's **landscape printable area** (sheet − 5 mm on every side @ 300 DPI; A4 ≈ 28.7×20 cm, US Letter ≈ 26.9×20.6 cm), so the print export sits with **equal 5 mm margins on all four sides** and thin fold marks at the thirds — no distortion. Print it at **landscape, scale 100% / actual size** (not "fit to page"). The plain `.pdf` is the same artwork at native size. (Paper geometry in `src/paper.py`, imposition in `src/a4_impose.py`, GIMP render in `src/a4_render.py`, standalone CLI `tools/export_pdf_a4.py`.)
 
 ## Customization
 
@@ -165,15 +189,16 @@ Everything text-based is editable per run through the TUI — it walks every lea
 
 A few `content.yaml` knobs adjust the look without touching code:
 
+- `paper` — print sheet, `a4` or `letter` (US); sizes the canvas to that sheet's printable area (tri-fold modules).
 - `background_color` — canvas colour (overrides `layout.yaml`).
 - `images.logo_pct` / `images.cover_pct` — size of the override art (0–1 of the available area; `1.0` = as large as fits).
 - `date.locale` — calendar weekday-header language (`en` / `pt` / `es` / `fr` / `it` / `de`); the day initials are filled automatically.
 
 Image elements are swapped by dropping PNGs into a module's `inputs/` folder (no code edit, no TUI):
 
-- `inputs/logo.png` — back-cover monogram.
+- `inputs/logo.png` — back-cover art (overrides the generated initials monogram, which is drawn from the couple's names + date).
 - `inputs/background.png` — full-bleed background image.
-- `inputs/<variant>.png` — cover illustration (e.g. `inputs/pajem.png`).
+- `inputs/<variant>.png` — cover illustration (e.g. `inputs/pageboy.png`).
 
 ## Project structure
 
@@ -187,9 +212,9 @@ gimp-wedding-invite-template/
 │   │   ├── content.yaml       # text fields, English placeholders
 │   │   ├── layout.yaml        # canvas, fonts, block positions
 │   │   └── build.py           # run(layout, content, bg_path, output_dir, module_name)
-│   ├── wedding-bridesmaid/    # same shape, tri-fold; 3 variants → 6 XCFs
+│   ├── wedding-sponsors/    # same shape, tri-fold; 3 variants → 6 XCFs
 │   ├── wedding-menu/          # TODO stub (README only)
-│   └── wedding-pages/         # pajem & daminha, tri-fold; 2 variants → 4 XCFs
+│   └── wedding-juniors/         # page boy & flower girl, tri-fold; 2 variants → 4 XCFs
 ├── src/                       # shared GIMP primitives
 │   ├── document.py            # canvas + color helpers
 │   ├── panels.py              # tri-fold rect math
@@ -197,9 +222,10 @@ gimp-wedding-invite-template/
 │   ├── text_utils.py          # font resolution + text-layer creation + wrap
 │   ├── palette.py             # color-circle row
 │   ├── calendar_panel.py      # month grid + day highlight
-│   ├── bridal_party_blocks.py # shared tri-fold engine (run_variants + panels)
-│   ├── a4_impose.py           # pure A4 imposition geometry (no GIMP; unit-tested)
-│   ├── a4_render.py           # render artwork onto an A4-landscape page + fold marks
+│   ├── trifold_blocks.py      # shared tri-fold engine (run_variants + panels)
+│   ├── paper.py               # A4 / US-Letter geometry (printable area, sheet)
+│   ├── a4_impose.py           # pure imposition geometry (no GIMP; unit-tested)
+│   ├── a4_render.py           # render artwork onto the chosen paper + fold marks
 │   └── module_runner.py       # dispatcher (single module via env, or --all via manifest)
 ├── tools/                     # standalone utilities (fonts, scraping, export, inspect)
 ├── assets/                    # backgrounds, ornaments (logo.png, icons/*.svg), palette refs
