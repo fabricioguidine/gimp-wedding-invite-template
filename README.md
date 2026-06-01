@@ -12,9 +12,9 @@ build script, and produces print-ready PNG + PDF artifacts via
 | Module               | Status | Output                                                                     |
 |----------------------|--------|----------------------------------------------------------------------------|
 | `wedding-invite`     | active | 1 portrait page (5×7" @ 300 DPI)                                           |
-| `wedding-bridesmaid` | active | 3 tri-fold leaflet variants (madrinha / padrinho / casal), 2 sides → 6 XCFs (30×15 cm) |
+| `wedding-bridesmaid` | active | 3 tri-fold leaflet variants (madrinha / padrinho / casal), 2 sides → 6 XCFs (A4-landscape, 28.7×20 cm) |
 | `wedding-menu`       | TODO   | reception menu card                                                        |
-| `wedding-pages`      | active | 2 tri-fold leaflet variants (pajem / daminha), 2 sides → 4 XCFs (30×15 cm) |
+| `wedding-pages`      | active | 2 tri-fold leaflet variants (pajem / daminha), 2 sides → 4 XCFs (A4-landscape, 28.7×20 cm) |
 
 The `wedding-bridesmaid` module builds all three bridal-party manuals
 (`madrinha` / `padrinho` / `casal`) in a single run. They share the common
@@ -33,7 +33,35 @@ balloons), and an optional cover illustration slot at `assets/kids/<name>.png`.
 Active modules produce a committed `template/template.{png,pdf,xcf}` rendered
 with **English placeholder text** of similar letter-count to the Portuguese
 original — so when real names/venues are plugged in via the TUI, the layout
-stays stable.
+stays stable. The committed templates carry **placeholders only** (no real
+names/contact); real content is supplied per run and never committed.
+
+Within each panel the engine measures every block and spaces them **evenly
+between the top and bottom margins** (equal gaps) rather than at fixed offsets,
+so panels stay balanced no matter how much text a block holds. Body/label sizes
+are floored at the mission-body size (nothing smaller than it), and multi-word
+swatch labels stack one word per line to stay inside the borders.
+
+## Examples
+
+All renders below are the committed `template/` files — **English placeholder
+content**, real names/contact are supplied per run and never committed.
+
+**Bridal-party manual — `casal` (couple), tri-fold, both sides:**
+
+![casal externo — cover + calendar/ceremony](modules/wedding-bridesmaid/template/template_casal_externo.png)
+
+![casal interno — mission + groomsman/bridesmaid + tips](modules/wedding-bridesmaid/template/template_casal_interno.png)
+
+**Kids manual — `pajem` (page boy), with the cover illustration:**
+
+![pajem externo](modules/wedding-pages/template/template_pajem_externo.png)
+
+![pajem interno](modules/wedding-pages/template/template_pajem_interno.png)
+
+**Single-page invite (`wedding-invite`, 5×7"):**
+
+<img src="modules/wedding-invite/template/template.png" alt="wedding-invite" width="340" />
 
 ## Quickstart
 
@@ -68,11 +96,13 @@ modules/wedding-invite/outputs/my-run/
 ```
 
 Tri-fold modules (`wedding-bridesmaid`, `wedding-pages`) additionally emit a
-`*_a4.pdf` per side: the 30x15 cm leaflet scaled to fit **A4 landscape**,
-centered, with thin fold marks at the thirds. Print it at **A4 landscape,
-scale 100% / actual size** (not "fit to page") so the text stays at the
-designed size. The plain `.pdf` remains the native 30x15 cm artwork for shops
-that print custom sizes. (Standalone: `tools/export_pdf_a4.py`.)
+`*_a4.pdf` per side. The leaflet canvas is sized to the **A4-landscape
+printable area** (297−2·5 mm × 210−2·5 mm @ 300 DPI), so the A4 export sits
+with **equal 5 mm margins on all four sides** and thin fold marks at the thirds
+— no distortion. Print it at **A4 landscape, scale 100% / actual size** (not
+"fit to page"). The plain `.pdf` is the same artwork at native size. (Geometry
+in `src/a4_impose.py`, GIMP render in `src/a4_render.py`, standalone CLI
+`tools/export_pdf_a4.py`.)
 
 ## Customizing
 
@@ -117,9 +147,12 @@ gimp-wedding-invite-template/
 │   ├── borders.py             # decorative stroke + path
 │   ├── text_utils.py          # font resolution + text-layer creation + wrap
 │   ├── palette.py             # color-circle row
-│   ├── calendar_panel.py      # month grid + day highlight
+│   ├── calendar_panel.py      # month grid + day highlight (accepts a grid_top)
 │   ├── bridal_party_blocks.py # shared tri-fold engine: run_variants + cover/
-│   │                          #   calendar/mission/role/split/tips/palette
+│   │                          #   calendar/mission/role/split/tips/palette,
+│   │                          #   each panel spaced evenly (_distribute_tops)
+│   ├── a4_impose.py           # pure A4 imposition geometry (no GIMP; unit-tested)
+│   ├── a4_render.py           # render artwork onto an A4-landscape page + fold marks
 │   └── module_runner.py       # dispatcher (single module, or --all via manifest)
 ├── tools/                            # standalone utilities (fonts, scraping, etc.)
 ├── assets/ornaments/                 # logo.png, icons/*.svg
