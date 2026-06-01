@@ -1,51 +1,96 @@
-# gimp-wedding-invite-template
+<div align="center">
 
-Per-deliverable wedding-stationery generator using **GIMP 3.2 + Python
-(GObject Introspection)**, driven by an interactive TUI.
+<img src=".github/assets/banner.svg" alt="gimp-wedding-invite-template" width="100%">
 
-Each *delivery module* under `modules/` owns its own layout, content, and
-build script, and produces print-ready PNG + PDF artifacts via
-`gimp-console-3.2.exe`.
+[![License: MIT](https://img.shields.io/badge/License-MIT-a371f7.svg)](LICENSE) [![Python 3.13](https://img.shields.io/badge/Python-3.13-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/) [![Platform: Windows](https://img.shields.io/badge/Platform-Windows-0078D6.svg?logo=windows&logoColor=white)](#requirements) [![GIMP 3.2](https://img.shields.io/badge/GIMP-3.2-5C5543.svg?logo=gimp&logoColor=white)](https://www.gimp.org/)
+
+</div>
+
+> YAML-driven GIMP 3 + Python generator for print-ready wedding stationery.
+
+Per-deliverable wedding-stationery generator using **GIMP 3.2 + Python (GObject Introspection)**, driven by an interactive TUI. Each *delivery module* under `modules/` owns its own layout, content, and build script, and produces print-ready PNG + PDF artifacts via `gimp-console-3.2.exe`.
+
+## Table of Contents
+
+- [Features](#features)
+- [Modules](#modules)
+- [How it works](#how-it-works)
+- [Examples](#examples)
+- [Requirements](#requirements)
+- [Usage](#usage)
+- [Customization](#customization)
+- [Project structure](#project-structure)
+- [Adding a new module](#adding-a-new-module)
+- [Fonts](#fonts)
+- [Tests](#tests)
+- [License](#license)
+
+## Features
+
+- **YAML-driven content + layout** — text lives in `content.yaml`, geometry in `layout.yaml`; shared GIMP primitives live in `src/`.
+- **Interactive TUI** (`tui.py` / `run.ps1`) that walks every field in `content.yaml` and prompts for each (Enter keeps the default), or runs `--non-interactive` from defaults.
+- **Multiple delivery modules** — single-page invite, tri-fold bridal-party manuals (madrinha / padrinho / casal), and tri-fold kids manuals (pajem / daminha).
+- **Print-ready output** — each run emits an editable `.xcf`, a 300 DPI `.png` preview, and a native-size `.pdf`; tri-fold modules also emit an A4-landscape `*_a4.pdf` with equal 5 mm margins and fold marks.
+- **Evenly-distributed panels** — every block is measured and spaced evenly between the top and bottom margins, so panels stay balanced regardless of text length.
+- **Reproducible runs** — every run snapshots its exact `_content.yaml` / `_layout.yaml` (plus JSON bridges) into `outputs/<run>/`.
+- **Committed English-placeholder templates** — `template/template*.{png,pdf,xcf}` ship as canonical examples; real names/venues are supplied per run and never committed.
+- **Batch mode** — `--all` rebuilds every active module in one GIMP session (one startup instead of N).
+- **Cormorant Garamond** typography with a Georgia fallback.
 
 ## Modules
 
 | Module               | Status | Output                                                                     |
 |----------------------|--------|----------------------------------------------------------------------------|
 | `wedding-invite`     | active | 1 portrait page (5×7" @ 300 DPI)                                           |
-| `wedding-bridesmaid` | active | 3 tri-fold leaflet variants (madrinha / padrinho / casal), 2 sides → 6 XCFs (A4-landscape, 28.7×20 cm) |
-| `wedding-menu`       | TODO   | reception menu card                                                        |
-| `wedding-pages`      | active | 2 tri-fold leaflet variants (pajem / daminha), 2 sides → 4 XCFs (A4-landscape, 28.7×20 cm) |
+| `wedding-bridesmaid` | active | 3 tri-fold variants (madrinha / padrinho / casal), 2 sides → 6 XCFs (A4-landscape, 28.7×20 cm) |
+| `wedding-menu`       | TODO   | reception menu card (stub)                                                 |
+| `wedding-pages`      | active | 2 tri-fold variants (pajem / daminha), 2 sides → 4 XCFs (A4-landscape, 28.7×20 cm) |
 
-The `wedding-bridesmaid` module builds all three bridal-party manuals
-(`madrinha` / `padrinho` / `casal`) in a single run. They share the common
-externo + mission + tips blocks via `src/bridal_party_blocks.py`; only the
-middle interno panel differs per variant (single-role center for
-madrinha/padrinho, split center for casal). Per-variant cover/role data lives
-under `variants:` in `content.yaml`, and `layout.yaml` splits `interno.middle`
-into `single:` / `split:` sub-maps.
+The TUI auto-discovers any directory under `modules/` that has all three of `build.py`, `layout.yaml`, and `content.yaml`; those are listed as **active**. A directory missing them (e.g. `wedding-menu`) is shown as a TODO stub and skipped by `--all`.
 
-`wedding-pages` reuses the same tri-fold (`src/bridal_party_blocks.py`) for the
-kids — `pajem` / `daminha`, both single-role — in Portuguese with a playful
-tone: a per-variant invite (`mission`, "Aceita ser nosso Pajem?"), an outfit
-instruction (`role`), the Marsala & Azul palette, kid icons (teddy / car /
-balloons), and an optional cover illustration slot at `assets/kids/<name>.png`.
+The `wedding-bridesmaid` module builds all three bridal-party manuals in a single run. They share the common externo + mission + tips blocks via `src/bridal_party_blocks.py`; only the middle interno panel differs per variant (single-role center for madrinha / padrinho, split center for casal). Per-variant cover/role data lives under `variants:` in `content.yaml`, and `layout.yaml` splits `interno.middle` into `single:` / `split:` sub-maps.
 
-Active modules produce a committed `template/template.{png,pdf,xcf}` rendered
-with **English placeholder text** of similar letter-count to the Portuguese
-original — so when real names/venues are plugged in via the TUI, the layout
-stays stable. The committed templates carry **placeholders only** (no real
-names/contact); real content is supplied per run and never committed.
+`wedding-pages` reuses the same tri-fold engine for the kids — `pajem` / `daminha`, both single-role — with a playful tone: a per-variant invite (`mission`), an outfit instruction (`role`), the palette swatches, kid icons (teddy / car / balloons), and an optional cover illustration slot at `assets/kids/<name>.png`.
 
-Within each panel the engine measures every block and spaces them **evenly
-between the top and bottom margins** (equal gaps) rather than at fixed offsets,
-so panels stay balanced no matter how much text a block holds. Body/label sizes
-are floored at the mission-body size (nothing smaller than it), and multi-word
-swatch labels stack one word per line to stay inside the borders.
+Active modules ship a committed `template/template*.{png,pdf,xcf}` rendered with **English placeholder text** of similar letter-count to the Portuguese original, so the layout stays stable when real names/venues are plugged in via the TUI. The committed templates carry **placeholders only** (no real names/contact); real content is supplied per run and never committed.
+
+## How it works
+
+Each module pairs a `content.yaml` (text) with a `layout.yaml` (geometry) and a `build.py`. The TUI loads them, optionally prompts for field overrides and a background image, snapshots the merged content/layout to JSON, and dispatches into GIMP. Inside the `gimp-console-3.2.exe` session `src/module_runner.py` imports the chosen module's `build.py`, which composes panels from the shared `src/` primitives and saves an `.xcf`; the runner then re-loads each XCF, flattens it, and writes the PNG + PDF (plus an A4 PDF for tri-fold modules).
+
+```mermaid
+flowchart TD
+    A[content.yaml<br/>text fields] --> C[tui.py / run.ps1<br/>prompt or --non-interactive]
+    B[layout.yaml<br/>canvas, fonts, blocks] --> C
+    BG[bg image / inputs PNGs<br/>optional bg / logo / cover] --> C
+    C --> D[snapshot _content.yaml + _layout.yaml<br/>+ _content.json / _layout.json]
+    D --> E[gimp-console-3.2.exe<br/>-b module_runner]
+    E --> F[module_runner.py<br/>single module via env, or --all via manifest]
+    F --> G[modules/&lt;name&gt;/build.py<br/>run layout, content, bg_path, output_dir, module_name]
+    G --> H[src/ GIMP primitives<br/>document · panels · borders · text_utils<br/>palette · calendar_panel · bridal_party_blocks]
+    H --> I[save .xcf]
+    I --> J[runner: flatten + export PNG/PDF<br/>+ a4_render for tri-fold]
+    J --> K[outputs/&lt;run&gt;/<br/>.xcf · .png · .pdf<br/>+ *_a4.pdf for tri-fold]
+```
+
+### Module contract
+
+Every `modules/<name>/build.py` exports a single function:
+
+```python
+def run(layout, content, bg_path, output_dir, module_name) -> list[str]:
+    """Build the deliverable. Return the list of saved .xcf paths.
+
+    The generic runner re-loads each XCF, flattens it, and saves PNG + PDF
+    alongside (and an A4 PDF for tri-fold modules).
+    """
+```
+
+A module that produces multiple files (e.g. `wedding-bridesmaid` builds three variants × externo + interno sides) returns multiple XCF paths. Tri-fold modules set a `fold:` block in `layout.yaml`, which the runner uses to also emit the A4-landscape PDF via `src/a4_render.py`.
 
 ## Examples
 
-All renders below are the committed `template/` files — **English placeholder
-content**, real names/contact are supplied per run and never committed.
+All renders below are the committed `template/` files — **English placeholder content**; real names/contact are supplied per run and never committed.
 
 **Bridal-party manual — `casal` (couple), tri-fold, both sides:**
 
@@ -63,14 +108,31 @@ content**, real names/contact are supplied per run and never committed.
 
 <img src="modules/wedding-invite/template/template.png" alt="wedding-invite" width="340" />
 
-## Quickstart
+## Requirements
+
+- Windows 11, PowerShell 7
+- **GIMP 3.2.4** at `C:\Users\fabri\AppData\Local\Programs\GIMP 3\bin\gimp-console-3.2.exe`
+- **Python 3.13** on the system PATH (for `pyyaml`, `questionary`, and `tui.py`)
+- The GIMP-embedded Python is invoked separately by `gimp-console-3.2.exe` and only needs the standard library + `gi.repository.Gimp`.
 
 ```powershell
-# One-time: install Python deps
+# One-time: install the host Python deps used by the TUI
 pip install pyyaml questionary
+```
 
+`pyyaml` is required; `questionary` is optional (it gives a nicer TUI, falling back to plain `input()` if missing).
+
+## Usage
+
+```powershell
 # Interactive run — pick a module, fill in text fields, supply bg image
 .\run.ps1
+
+# Build a specific module straight from its content.yaml defaults
+.\run.ps1 wedding-invite
+
+# List the known modules and skip the picker
+.\run.ps1 -List
 
 # Non-interactive — accept defaults from content.yaml, no prompts
 python tui.py --module wedding-invite --run-name my-run --non-interactive
@@ -95,98 +157,68 @@ modules/wedding-invite/outputs/my-run/
 └── wedding-invite.pdf     # print-ready (native size)
 ```
 
-Tri-fold modules (`wedding-bridesmaid`, `wedding-pages`) additionally emit a
-`*_a4.pdf` per side. The leaflet canvas is sized to the **A4-landscape
-printable area** (297−2·5 mm × 210−2·5 mm @ 300 DPI), so the A4 export sits
-with **equal 5 mm margins on all four sides** and thin fold marks at the thirds
-— no distortion. Print it at **A4 landscape, scale 100% / actual size** (not
-"fit to page"). The plain `.pdf` is the same artwork at native size. (Geometry
-in `src/a4_impose.py`, GIMP render in `src/a4_render.py`, standalone CLI
-`tools/export_pdf_a4.py`.)
+Tri-fold modules (`wedding-bridesmaid`, `wedding-pages`) additionally emit a `*_a4.pdf` per side. The leaflet canvas is sized to the **A4-landscape printable area** (297−2·5 mm × 210−2·5 mm @ 300 DPI), so the A4 export sits with **equal 5 mm margins on all four sides** and thin fold marks at the thirds — no distortion. Print it at **A4 landscape, scale 100% / actual size** (not "fit to page"). The plain `.pdf` is the same artwork at native size. (Geometry in `src/a4_impose.py`, GIMP render in `src/a4_render.py`, standalone CLI `tools/export_pdf_a4.py`.)
 
-## Customizing
+## Customization
 
-Everything text-based is editable per run through the TUI — it walks every field
-in `content.yaml` and prompts for each (Enter keeps the default): couple names,
-date, ceremony, tips, and per-variant cover title, invite (`mission`:
-title / body / highlight / verse) and outfit (`role`: title / body / palette).
+Everything text-based is editable per run through the TUI — it walks every leaf field in `content.yaml` and prompts for each (Enter keeps the default): couple names, date, ceremony, tips, and per-variant cover title, invite (`mission`: title / body / highlight / verse) and outfit (`role`: title / body / palette).
 
 A few `content.yaml` knobs adjust the look without touching code:
 
 - `background_color` — canvas colour (overrides `layout.yaml`).
-- `images.logo_pct` / `images.cover_pct` — size of the override art (0–1 of the
-  available area; `1.0` = as large as fits).
-- `date.locale` — weekday-header language (`en` / `pt` / `es` / `fr` / `it` /
-  `de`); the calendar day initials are filled automatically.
+- `images.logo_pct` / `images.cover_pct` — size of the override art (0–1 of the available area; `1.0` = as large as fits).
+- `date.locale` — calendar weekday-header language (`en` / `pt` / `es` / `fr` / `it` / `de`); the day initials are filled automatically.
 
-Image elements are swapped by dropping PNGs into a module's `inputs/` folder
-(no code edit, no TUI):
+Image elements are swapped by dropping PNGs into a module's `inputs/` folder (no code edit, no TUI):
 
 - `inputs/logo.png` — back-cover monogram.
 - `inputs/background.png` — full-bleed background image.
 - `inputs/<variant>.png` — cover illustration (e.g. `inputs/pajem.png`).
 
-## Architecture
+## Project structure
 
 ```
 gimp-wedding-invite-template/
 ├── modules/
 │   ├── wedding-invite/
-│   │   ├── template/          # committed example PNG/PDF (English placeholders)
+│   │   ├── template/          # committed example PNG/PDF/XCF (English placeholders)
 │   │   ├── inputs/            # user-supplied bg images (gitignored)
 │   │   ├── outputs/<run>/     # PNG + PDF per run (gitignored)
 │   │   ├── content.yaml       # text fields, English placeholders
 │   │   ├── layout.yaml        # canvas, fonts, block positions
-│   │   └── build.py           # `run(layout, content, bg_path, output_dir, module_name)`
-│   ├── wedding-bridesmaid/          # same shape, tri-fold; 3 variants → 6 XCFs
-│   ├── wedding-menu/                # TODO stub
-│   └── wedding-pages/               # pajem & daminha, tri-fold; 2 variants → 4 XCFs
-├── src/                              # shared GIMP primitives
+│   │   └── build.py           # run(layout, content, bg_path, output_dir, module_name)
+│   ├── wedding-bridesmaid/    # same shape, tri-fold; 3 variants → 6 XCFs
+│   ├── wedding-menu/          # TODO stub (README only)
+│   └── wedding-pages/         # pajem & daminha, tri-fold; 2 variants → 4 XCFs
+├── src/                       # shared GIMP primitives
 │   ├── document.py            # canvas + color helpers
 │   ├── panels.py              # tri-fold rect math
 │   ├── borders.py             # decorative stroke + path
 │   ├── text_utils.py          # font resolution + text-layer creation + wrap
 │   ├── palette.py             # color-circle row
-│   ├── calendar_panel.py      # month grid + day highlight (accepts a grid_top)
-│   ├── bridal_party_blocks.py # shared tri-fold engine: run_variants + cover/
-│   │                          #   calendar/mission/role/split/tips/palette,
-│   │                          #   each panel spaced evenly (_distribute_tops)
+│   ├── calendar_panel.py      # month grid + day highlight
+│   ├── bridal_party_blocks.py # shared tri-fold engine (run_variants + panels)
 │   ├── a4_impose.py           # pure A4 imposition geometry (no GIMP; unit-tested)
 │   ├── a4_render.py           # render artwork onto an A4-landscape page + fold marks
-│   └── module_runner.py       # dispatcher (single module, or --all via manifest)
-├── tools/                            # standalone utilities (fonts, scraping, etc.)
-├── assets/ornaments/                 # logo.png, icons/*.svg
-├── tui.py                            # interactive launcher (questionary)
-└── run.ps1                           # PowerShell wrapper around tui.py
+│   └── module_runner.py       # dispatcher (single module via env, or --all via manifest)
+├── tools/                     # standalone utilities (fonts, scraping, export, inspect)
+├── assets/                    # backgrounds, ornaments (logo.png, icons/*.svg), palette refs
+├── tests/                     # structure / TUI / A4 / e2e
+├── tui.py                     # interactive launcher (questionary)
+├── run.ps1                    # PowerShell wrapper around tui.py
+└── pytest.ini
 ```
-
-### Module contract
-
-Every `modules/<name>/build.py` exports a single function:
-
-```python
-def run(layout, content, bg_path, output_dir, module_name) -> list[str]:
-    """Build the deliverable. Return list of saved .xcf paths.
-
-    The generic runner re-loads each XCF, flattens it, and saves PNG + PDF
-    alongside.
-    """
-```
-
-A module that produces multiple files (e.g. `wedding-bridesmaid` builds three
-variants × externo + interno sides) returns multiple XCF paths.
 
 ## Adding a new module
 
-1. `cp -r modules/wedding-invite modules/wedding-<your-deliverable>`
+1. Copy an existing module: `Copy-Item -Recurse modules/wedding-invite modules/wedding-<your-deliverable>`
 2. Edit `layout.yaml` (canvas dimensions, block positions).
 3. Edit `content.yaml` (English placeholders).
 4. Rewrite `build.py` for the new design.
 5. `python tui.py --module wedding-<your-deliverable> --run-name template --non-interactive`
-6. Copy the result into `template/template.png` / `.pdf` and commit.
+6. Copy the result into `template/template.png` / `.pdf` / `.xcf` and commit.
 
-The TUI auto-discovers any module under `modules/` that has all three of
-`build.py`, `layout.yaml`, `content.yaml`.
+The module is auto-discovered as long as it has all three of `build.py`, `layout.yaml`, and `content.yaml`.
 
 ## Fonts
 
@@ -194,17 +226,7 @@ The TUI auto-discovers any module under `modules/` that has all three of
 .\tools\install_fonts.ps1
 ```
 
-Installs **Cormorant Garamond** (regular/bold/italic/bold-italic) from
-Google Fonts into the user font directory. The build falls back to
-**Georgia** if Cormorant isn't found.
-
-## Environment
-
-- Windows 11, PowerShell 7
-- GIMP 3.2.4 at `C:\Users\fabri\AppData\Local\Programs\GIMP 3\bin\`
-- Python 3.13 on the system PATH (for `pyyaml`, `questionary`, and `tui.py`)
-- The GIMP-embedded Python is invoked separately by `gimp-console-3.2.exe`
-  and only needs the standard library + `gi.repository.Gimp`.
+Installs **Cormorant Garamond** (regular / bold / italic / bold-italic) from Google Fonts into the user font directory. The build falls back to **Georgia** if Cormorant isn't found.
 
 ## Tests
 
@@ -219,10 +241,8 @@ pytest tests/test_structure.py tests/test_tui.py
 pytest
 ```
 
-`tests/test_e2e.py` builds each module (and `--all`) for real and asserts the
-XCF/PNG/PDF artifacts exist, plus that a module still builds with an
-`inputs/logo.png` override present.
+`tests/test_e2e.py` builds each module (and `--all`) for real and asserts the XCF/PNG/PDF artifacts exist, plus that a module still builds with an `inputs/logo.png` override present. `tests/test_a4_impose.py` unit-tests the pure A4 imposition geometry without GIMP.
 
 ## License
 
-MIT.
+[MIT](LICENSE)
