@@ -14,10 +14,16 @@ import yaml
 import tui
 from _modules import active_module_dirs, module_ids, REPO_ROOT
 
-pytestmark = pytest.mark.skipif(
-    not tui.GIMP_EXE.exists(),
-    reason='gimp-console not found at {} — e2e build skipped'.format(tui.GIMP_EXE),
-)
+# These launch a real gimp-console and are slow + host-dependent, so they are
+# opt-in: deselected by default (see pyproject `-m "not e2e"`) and additionally
+# skipped when no gimp-console is on this machine. They never run in CI.
+pytestmark = [
+    pytest.mark.e2e,
+    pytest.mark.skipif(
+        not tui.GIMP_EXE.exists(),
+        reason='gimp-console not found at {} - e2e build skipped'.format(tui.GIMP_EXE),
+    ),
+]
 
 MODS = active_module_dirs()
 IDS = module_ids()

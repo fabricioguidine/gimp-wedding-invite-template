@@ -1,0 +1,3 @@
+# Cross-platform runtime deps for the headless Python automation (no GIMP).
+# GIMP 3 itself bundles its own Python and is NOT installed via pip.
+PyYAML>=6.0
