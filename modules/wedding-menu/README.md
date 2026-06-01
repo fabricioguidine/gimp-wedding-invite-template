@@ -2,7 +2,7 @@
 
 **Status:** TODO — not implemented yet.
 
-Planned deliverable: the reception menu card (cardápio). Probably a single
+Planned deliverable: the reception menu card. Probably a single
 portrait page like `wedding-invite`, with sections for:
 
 - Couple monogram / heading

@@ -1,11 +1,11 @@
-"""Criação do documento base no GIMP 3.
+"""Base document creation in GIMP 3.
 
-Responsável por: canvas com dimensões/DPI corretos, layer de fundo creme,
-guides verticais marcando as dobras do tri-fold.
+Responsible for: canvas with correct dimensions/DPI, background colour layer,
+and vertical guides marking the tri-fold folds.
 
-API: GIMP 3.x via GObject Introspection (gi.repository.Gimp).
-Não confundir com Python-Fu / gimpfu do GIMP 2.10 — assinatura das
-funções e nomes de classes mudaram bastante.
+API: GIMP 3.x via GObject Introspection (gi.repository.Gimp). Not to be
+confused with Python-Fu / gimpfu from GIMP 2.10 — function signatures and
+class names changed a lot.
 """
 
 import gi
@@ -15,15 +15,15 @@ from gi.repository import Gimp, Gegl
 
 
 def hex_to_rgb01(hex_color):
-    """Converte '#RRGGBB' em tupla (r, g, b) com componentes em [0, 1]."""
+    """Convert '#RRGGBB' into an (r, g, b) tuple with components in [0, 1]."""
     h = hex_color.lstrip('#')
     return tuple(int(h[i:i+2], 16) / 255.0 for i in (0, 2, 4))
 
 
 def make_color(hex_color):
-    """Constrói um Gegl.Color a partir de string '#RRGGBB'.
+    """Build a Gegl.Color from a '#RRGGBB' string.
 
-    No GIMP 3 a API de cor passa pelo Gegl.Color (não mais gimpcolor).
+    In GIMP 3 the colour API goes through Gegl.Color (no longer gimpcolor).
     """
     color = Gegl.Color.new('white')
     r, g, b = hex_to_rgb01(hex_color)
@@ -32,14 +32,13 @@ def make_color(hex_color):
 
 
 def create_canvas(layout, invite=None):
-    """Cria a imagem base com fundo creme e guides verticais nas dobras.
+    """Create the base image with a background fill and vertical fold guides.
 
-    Parâmetros:
-        layout: dict carregado de layout.yaml (já convertido em JSON).
-        invite: dict carregado de invite.yaml. Não usado nesta fase,
-                mas mantido na assinatura pra próximas fases.
+    Parameters:
+        layout: dict loaded from layout.yaml (already converted to JSON).
+        invite: dict loaded from content (unused here, kept in the signature).
 
-    Retorna: instância de Gimp.Image pronta pra ser salva.
+    Returns: a Gimp.Image ready to be drawn on and saved.
     """
     canvas_cfg = layout['canvas']
     width = int(canvas_cfg['width_px'])
@@ -47,28 +46,28 @@ def create_canvas(layout, invite=None):
     dpi = float(canvas_cfg['dpi'])
     bg_hex = canvas_cfg['background_color']
 
-    # Cria imagem RGB sem alpha
+    # RGB image without alpha
     image = Gimp.Image.new(width, height, Gimp.ImageBaseType.RGB)
     image.set_resolution(dpi, dpi)
 
-    # Pinta o fundo num layer dedicado (mais flexível que usar Gimp.Image fill)
+    # Paint the background on a dedicated layer (more flexible than Image fill)
     bg_layer = Gimp.Layer.new(
         image,
         'bg',
         width,
         height,
         Gimp.ImageType.RGB_IMAGE,
-        100.0,                     # opacidade
+        100.0,                     # opacity
         Gimp.LayerMode.NORMAL,
     )
-    # parent=None, position=0 → topo da pilha (única layer por enquanto)
+    # parent=None, position=0 -> top of the stack (only layer so far)
     image.insert_layer(bg_layer, None, 0)
 
-    # Preenche o layer com a cor creme via context_set_foreground + fill
+    # Fill the layer with the background colour via context_set_foreground + fill
     Gimp.context_set_foreground(make_color(bg_hex))
     bg_layer.fill(Gimp.FillType.FOREGROUND)
 
-    # Guides verticais nas dobras (sanfona / Z-fold)
+    # Vertical guides at the folds (accordion / Z-fold)
     for pct in layout['fold']['guides_vertical_pct']:
         x = int(round(width * float(pct) / 100.0))
         image.add_vguide(x)

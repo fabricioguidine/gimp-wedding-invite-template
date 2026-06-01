@@ -1,12 +1,11 @@
-"""Exporta o .xcf gerado pra PDF (formato pra impressão).
+"""Export the generated .xcf to PDF (print format).
 
-Uso (mesmo padrão do export_png):
+Usage (same pattern as export_png):
   gimp-console-3.2.exe -i -d --quit --batch-interpreter=python-fu-eval \
-    -b "import sys; sys.path.insert(0, r'.../tools'); import export_pdf; export_pdf.run(r'.../arquivo.xcf', r'.../arquivo.pdf')"
+    -b "import sys; sys.path.insert(0, r'.../tools'); import export_pdf; export_pdf.run(r'.../file.xcf', r'.../file.pdf')"
 
-GIMP 3 usa o plug-in file-pdf-save (deduzido pela extensão .pdf no path).
-Mantém os 300 DPI definidos no XCF — o PDF resultante imprime no
-tamanho físico correto (≈30×15 cm pro tri-fold).
+GIMP 3 uses the file-pdf-save plug-in (inferred from the .pdf extension). Keeps
+the 300 DPI set in the XCF, so the PDF prints at the correct physical size.
 """
 
 import gi
@@ -25,5 +24,5 @@ def run(xcf_path, pdf_path):
         Gio.File.new_for_path(pdf_path),
         None,
     )
-    print('PDF salvo em:', pdf_path)
+    print('PDF saved to:', pdf_path)
     image.delete()

@@ -535,22 +535,22 @@ def draw_palette_with_labels(image, layout, panel_rects, panel_groups, *,
     if circle_cy is not None:
         y_factor = (circle_cy - _py) / float(_ph)
     shim_layout = {
-        'panels': {'madrinha': {'palette': palette_cfg}},
+        'panels': {'swatches': {'palette': palette_cfg}},
         'borders': layout['borders'],
     }
-    shim_invite = {'madrinha': {'palette': colors}}
-    shim_rects = {'madrinha': panel_rects[panel_name]}
-    shim_groups = {'madrinha': panel_groups[panel_name]}
+    shim_invite = {'swatches': {'palette': colors}}
+    shim_rects = {'swatches': panel_rects[panel_name]}
+    shim_groups = {'swatches': panel_groups[panel_name]}
     palette_module.draw_palette(image, shim_layout, shim_invite,
                                 shim_rects, shim_groups,
-                                panel_name='madrinha', y_factor=y_factor,
+                                panel_name='swatches', y_factor=y_factor,
                                 layer_name='{}_palette'.format(layer_prefix))
 
     color = make_color(layout['text_color'])
     body_font = resolve_font(layout, 'serif')
     radius = int(palette_cfg['circle_radius_px'])
     centers = palette_module.compute_circle_centers(
-        shim_layout, shim_rects, 'madrinha', len(colors),
+        shim_layout, shim_rects, 'swatches', len(colors),
     )
     px, py, pw, ph = panel_rects[panel_name]
     cy_palette = py + int(ph * y_factor)

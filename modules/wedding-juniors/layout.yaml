@@ -1,5 +1,5 @@
-# wedding-pages — visual structure (tri-fold leaflet, 2 sides per variant).
-# Same template as wedding-bridesmaid, applied to the kids (pajem / daminha).
+# wedding-juniors — visual structure (tri-fold leaflet, 2 sides per variant).
+# Same template as wedding-sponsors, applied to the kids (pageboy / flowergirl).
 # Both variants are single-role, so interno.middle only needs `single`.
 
 canvas:
@@ -14,7 +14,7 @@ canvas:
 text_color: "#9C7E3E"
 
 fold:
-  type: "sanfona"
+  type: "accordion"
   panel_order:
     - back_cover
     - middle
@@ -52,7 +52,7 @@ externo:
   middle:                     # calendar + ceremony info
     weekday_size_px: 94
     date_size_px: 56
-    arrival_size_px: 51         # floor: no text smaller than the Sua Missão body (51)
+    arrival_size_px: 51         # floor: no text smaller than the mission body (51)
     venue_size_px: 51
     address_size_px: 51
     calendar:
@@ -61,19 +61,19 @@ externo:
       day_size_px: 54
       highlight_radius_px: 36
       highlight_stroke_px: 3
-      weekday_labels: ["D", "S", "T", "Q", "Q", "S", "S"]   # PT Dom-Sáb
+      weekday_labels: ["S", "M", "T", "W", "T", "F", "S"]   # fallback; overridden by date.locale
   back_cover:                 # logo (or empty if no logo asset)
     logo_padding_px: 50
 
 # Internal side (after unfolding) — three panels of content.
 interno:
-  back_cover:                 # convite (missão)
+  back_cover:                 # invite (mission)
     title_size_px: 100
     body_size_px: 51
     body_wrap_chars: 30         # widened with the font so the block keeps its height
-    highlight_size_px: 72       # "Aceita ser nosso Pajem?" em destaque (kept — already big)
+    highlight_size_px: 72       # page-boy highlight (kept; already big) (kept — already big)
     highlight_wrap_chars: 16
-    verse_size_px: 51           # floor at Sua Missão body size
+    verse_size_px: 51           # floor at mission body size
     verse_wrap_chars: 30
     ref_size_px: 51
   middle:
@@ -85,7 +85,7 @@ interno:
       body_size_px: 56
       body_wrap_chars: 32       # widened with the font (fewer, wider lines)
       palette_subtitle_size_px: 62
-      color_label_size_px: 51   # floor at Sua Missão body size
+      color_label_size_px: 51   # floor at mission body size
       palette:
         circle_radius_px: 60
         circle_spacing_px: 110  # labels are stacked (1 word/line), so swatches sit naturally

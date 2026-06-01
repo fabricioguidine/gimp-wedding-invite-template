@@ -1,5 +1,5 @@
-# wedding-bridesmaid — visual structure (tri-fold leaflet, 2 sides per variant).
-# Z-fold / sanfona; panels left-to-right when open are:
+# wedding-sponsors — visual structure (tri-fold leaflet, 2 sides per variant).
+# Z-fold / accordion; panels left-to-right when open are:
 #   back_cover  |  middle (calendar / role)  |  front_cover
 # One layout serves all three variants (madrinha / padrinho / casal). The only
 # per-variant difference is the interno middle panel: single-role vs split.
@@ -16,7 +16,7 @@ canvas:
 text_color: "#9C7E3E"
 
 fold:
-  type: "sanfona"
+  type: "accordion"
   panel_order:
     - back_cover
     - middle
@@ -54,7 +54,7 @@ externo:
   middle:                     # calendar + ceremony info  (+34% text)
     weekday_size_px: 94
     date_size_px: 56
-    arrival_size_px: 51         # floor: no text smaller than the Sua Missão body (51)
+    arrival_size_px: 51         # floor: no text smaller than the mission body (51)
     venue_size_px: 51
     address_size_px: 51
     calendar:
@@ -75,7 +75,7 @@ interno:
     body_wrap_chars: 33         # widened with the font so the block keeps its height
     verse_size_px: 54
     verse_wrap_chars: 35
-    ref_size_px: 51             # floor at Sua Missão body size
+    ref_size_px: 51             # floor at mission body size
   middle:
     # single — madrinha / padrinho: one role title + body + palette + names.
     single:
@@ -83,7 +83,7 @@ interno:
       body_size_px: 56
       body_wrap_chars: 32       # widened with the font (fewer, wider lines)
       palette_subtitle_size_px: 67
-      color_label_size_px: 51   # floor at Sua Missão body size
+      color_label_size_px: 51   # floor at mission body size
       palette:
         circle_radius_px: 60
         circle_spacing_px: 110  # labels are stacked (1 word/line), so swatches sit naturally

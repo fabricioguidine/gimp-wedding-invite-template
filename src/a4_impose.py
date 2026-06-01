@@ -1,9 +1,8 @@
-"""Geometria de imposição A4 (pura, sem GIMP — testável em qualquer lugar).
+"""Print imposition geometry (pure, no GIMP — testable anywhere).
 
-O tri-fold é desenhado em 30x15 cm (851x426 pt). Pra imprimir numa folha A4
-real, precisa caber em A4 paisagem (29.7x21 cm) — como 30 > 29.7, a arte é
-reduzida pra caber dentro das margens e centralizada. Aqui só calculamos a
-escala/offsets/posição das dobras; o desenho fica em a4_render (GIMP).
+Scales the tri-fold artwork to fit the chosen print sheet (landscape), keeping
+its aspect ratio, and centers it inside an even margin. Here we only compute
+the scale / offsets / fold positions; the drawing happens in a4_render (GIMP).
 """
 
 MM_PER_IN = 25.4
@@ -14,15 +13,15 @@ def mm_to_px(mm, dpi=300):
 
 
 def a4_landscape_px(dpi=300):
-    """A4 paisagem (297x210 mm) em pixels no DPI dado."""
+    """A4 landscape (297x210 mm) in pixels at the given DPI."""
     return mm_to_px(297, dpi), mm_to_px(210, dpi)
 
 
 def compute(src_w, src_h, margin_mm=5.0, dpi=300, page=None):
-    """Escala-pra-caber + centraliza a arte na folha.
+    """Scale-to-fit + center the artwork on the sheet.
 
-    Retorna dict com page_w/page_h, scale, new_w/new_h, off_x/off_y e fold_x
-    (os dois x absolutos das dobras, nos terços da arte já escalada).
+    Returns a dict with page_w/page_h, scale, new_w/new_h, off_x/off_y and
+    fold_x (the two absolute fold x-positions, at the thirds of the scaled art).
     """
     page_w, page_h = page if page is not None else a4_landscape_px(dpi)
     m = mm_to_px(margin_mm, dpi)
