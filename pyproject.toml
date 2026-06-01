@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gimp-wedding-invite-template"
+version = "0.1.0"
+description = "YAML-driven GIMP 3 + Python generator for print-ready wedding stationery."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+# e2e launches a real gimp-console (slow, host-dependent, never in CI); opt in
+# with `pytest -m e2e`.
+addopts = "-ra -m \"not e2e\""
+markers = [
+    "e2e: end-to-end build that launches gimp-console (slow, requires GIMP; never runs in CI)",
+]
