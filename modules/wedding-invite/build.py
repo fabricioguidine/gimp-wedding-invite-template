@@ -1,6 +1,6 @@
 """wedding-invite — GIMP 3 builder for the single-page portrait invite.
 
-Reverse-engineered from the reference PDF (Luany & Joao Marcos, Oct 2026):
+Reverse-engineered from the reference invite PDF:
 
     + verse (italic)              ~6% from top
     + verse reference             ~8.5%
