@@ -48,11 +48,9 @@ fonts:
 
 # External side (visible when folded) — front_cover faces out, back_cover wraps.
 externo:
-  front_cover:                # title + couple subtitle
+  front_cover:                # title + couple subtitle (distributed evenly)
     title_size_px: 140
-    title_top_padding_px: 80
     subtitle_size_px: 100
-    subtitle_y_factor: 0.78
   middle:                     # calendar + ceremony info  (+34% text)
     weekday_size_px: 94
     date_size_px: 56
@@ -89,21 +87,14 @@ interno:
       palette:
         circle_radius_px: 60
         circle_spacing_px: 110  # labels are stacked (1 word/line), so swatches sit naturally
-    # split — casal: stacked groomsman + bridesmaid sections. Bodies floored at
-    # the Sua Missão size (51); the taller A4-aspect canvas gives the room.
+    # split — casal: overall title + groomsman & bridesmaid sections, all
+    # distributed evenly down the panel (positions computed at render time).
     split:
       overall_title_size_px: 90
       section_title_size_px: 60
       body_size_px: 51
       body_wrap_chars: 37        # narrower wrap so the 51px body keeps its width
       color_label_size_px: 51
-      overall_title_y_top_offset_px: 30
-      groomsman_title_y_factor: 0.135
-      groomsman_body_y_factor: 0.26
-      groomsman_palette_y_factor: 0.40
-      bridesmaid_title_y_factor: 0.52
-      bridesmaid_body_y_factor: 0.66
-      bridesmaid_palette_y_factor: 0.81
       palette:
         circle_radius_px: 60
         circle_spacing_px: 90

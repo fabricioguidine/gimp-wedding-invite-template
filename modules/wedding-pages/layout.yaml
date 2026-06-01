@@ -46,11 +46,9 @@ fonts:
 
 # External side (visible when folded) — front_cover faces out, back_cover wraps.
 externo:
-  front_cover:                # cover art (top) + title + couple subtitle
+  front_cover:                # cover art + title + couple subtitle (distributed evenly)
     title_size_px: 96
-    title_top_padding_px: 880   # pushed below the cover art (taller A4-aspect canvas)
     subtitle_size_px: 100
-    subtitle_y_factor: 0.82
   middle:                     # calendar + ceremony info
     weekday_size_px: 94
     date_size_px: 56

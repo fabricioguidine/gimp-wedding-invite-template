@@ -155,44 +155,51 @@ def save_xcf(image, path):
 
 
 # ============================================================ externo
-def draw_externo(image, layout, content, panel_rects, panel_groups, inputs_dir=None):
+def draw_externo(image, layout, content, panel_rects, panel_groups, inputs_dir=None,
+                 variant=None):
     """The folded-cover face. Same for all three manuals."""
     cfg = layout['externo']
     color = make_color(layout['text_color'])
 
-    _draw_cover_title(image, layout, cfg['front_cover'], content,
-                      panel_rects, panel_groups, color)
-    _draw_couple_subtitle(image, layout, cfg['front_cover'], content,
-                          panel_rects, panel_groups, color)
+    _draw_cover(image, layout, cfg['front_cover'], content, panel_rects,
+                panel_groups, color, inputs_dir, variant)
     _draw_calendar_with_info(image, layout, cfg['middle'], content,
                              panel_rects, panel_groups, color)
     _draw_back_cover_logo(image, layout, cfg['back_cover'], content,
                           panel_rects, panel_groups, inputs_dir)
 
 
-def _draw_cover_title(image, layout, cfg, content, panel_rects, panel_groups, color):
+def _draw_cover(image, layout, cfg, content, panel_rects, panel_groups, color,
+                inputs_dir, variant):
+    """Front cover: optional illustration + title + couple, distributed evenly."""
     panel = 'front_cover'
     px, py, pw, ph = panel_rects[panel]
     parent = panel_groups[panel]
-    font = resolve_font(layout, 'script_bold')
-    text = '\n'.join(content['cover']['title'].split())
-    layer = make_text_layer(image, parent, 'cover_title', text, font,
-                            int(cfg['title_size_px']), color)
-    layer.set_justification(Gimp.TextJustification.CENTER)
+    cx = px + pw // 2
     inner = int(layout['borders']['inner_margin_px'])
-    top_y = py + inner + int(cfg['title_top_padding_px'])
-    layer.set_offsets(px + (pw - layer.get_width()) // 2, top_y)
 
+    blocks = []
+    art = _load_cover_art(image, layout, content, panel_rects, panel_groups,
+                          inputs_dir, variant)
+    if art is not None:
+        blocks.append(art)
 
-def _draw_couple_subtitle(image, layout, cfg, content, panel_rects, panel_groups, color):
-    panel = 'front_cover'
-    px, py, pw, ph = panel_rects[panel]
-    parent = panel_groups[panel]
-    font = resolve_font(layout, 'serif')
-    text = '{} & {}'.format(content['couple']['bride'], content['couple']['groom'])
-    layer = make_text_layer(image, parent, 'cover_subtitle', text, font,
-                            int(cfg['subtitle_size_px']), color)
-    center_layer_at(layer, px + pw // 2, py + int(ph * float(cfg['subtitle_y_factor'])))
+    title = make_text_layer(image, parent, 'cover_title',
+                            '\n'.join(content['cover']['title'].split()),
+                            resolve_font(layout, 'script_bold'),
+                            int(cfg['title_size_px']), color)
+    title.set_justification(Gimp.TextJustification.CENTER)
+    blocks.append(title)
+
+    subtitle = make_text_layer(
+        image, parent, 'cover_subtitle',
+        '{} & {}'.format(content['couple']['bride'], content['couple']['groom']),
+        resolve_font(layout, 'serif'), int(cfg['subtitle_size_px']), color)
+    subtitle.set_justification(Gimp.TextJustification.CENTER)
+    blocks.append(subtitle)
+
+    tops = _distribute_tops(py, ph, inner, [b.get_height() for b in blocks])
+    _place_centered(blocks, tops, cx)
 
 
 def _draw_calendar_with_info(image, layout, cfg, content, panel_rects, panel_groups, color):
@@ -200,62 +207,68 @@ def _draw_calendar_with_info(image, layout, cfg, content, panel_rects, panel_gro
     px, py, pw, ph = panel_rects[panel]
     parent = panel_groups[panel]
     cx = px + pw // 2
+    inner = int(layout['borders']['inner_margin_px'])
 
     title_font = resolve_font(layout, 'script_bold')
     body_font = resolve_font(layout, 'serif')
 
-    # weekday header: auto from content.date.locale (e.g. 'pt', 'en'); falls
-    # back to the labels in layout.yaml when no locale is given.
+    # weekday header: auto from content.date.locale; falls back to layout labels.
     cal_cfg = cfg['calendar']
     locale = content['date'].get('locale')
     if locale:
         cal_cfg = dict(cal_cfg)
         cal_cfg['weekday_labels'] = _weekday_initials(locale, cal_cfg['weekday_labels'])
-    shim_layout = _shim_calendar_layout(layout, cal_cfg)
-    shim_invite = {
-        'save_the_date': {
-            'year': int(content['date']['year']),
-            'month': int(content['date']['month']),
-            'highlighted_day': int(content['date']['day']),
-        },
-    }
-    shim_panel_rects = {'save_the_date': panel_rects[panel]}
-    shim_panel_groups = {'save_the_date': panel_groups[panel]}
-    calendar_module.draw_calendar(image, shim_layout, shim_invite,
-                                  shim_panel_rects, shim_panel_groups)
+    year, month = int(content['date']['year']), int(content['date']['month'])
 
+    # blocks top→bottom: weekday, date, calendar grid, ceremony lines — evenly spaced
+    blocks = []  # ('layer', layer) | ('cal', height)
     wd = make_text_layer(image, parent, 'cal_weekday', content['date']['weekday_name'],
                          title_font, int(cfg['weekday_size_px']), color)
-    center_layer_at(wd, cx, py + int(ph * 0.12))
+    wd.set_justification(Gimp.TextJustification.CENTER)
+    blocks.append(('layer', wd))
 
     date_text = '{} | {} | {}'.format(content['date']['day'],
                                        content['date']['month_name'],
                                        content['date']['year'])
     date = make_text_layer(image, parent, 'cal_date', date_text,
                            body_font, int(cfg['date_size_px']), color)
-    center_layer_at(date, cx, py + int(ph * 0.21))
+    date.set_justification(Gimp.TextJustification.CENTER)
+    blocks.append(('layer', date))
 
-    y_pct = 0.74
-    if content['ceremony'].get('arrival_time'):
-        arr_text = '{}: {}'.format(content['ceremony']['arrival_label'],
-                                    content['ceremony']['arrival_time'])
-        arr = make_text_layer(image, parent, 'cal_arrival', arr_text,
+    blocks.append(('cal', calendar_module.grid_height(year, month, cal_cfg['cell_size_px'])))
+
+    ceremony = content['ceremony']
+    if ceremony.get('arrival_time'):
+        arr = make_text_layer(image, parent, 'cal_arrival',
+                              '{}: {}'.format(ceremony['arrival_label'], ceremony['arrival_time']),
                               body_font, int(cfg['arrival_size_px']), color)
-        center_layer_at(arr, cx, py + int(ph * y_pct))
-        y_pct += 0.06
-    if content['ceremony'].get('venue'):
+        arr.set_justification(Gimp.TextJustification.CENTER)
+        blocks.append(('layer', arr))
+    if ceremony.get('venue'):
         venue = make_text_layer(image, parent, 'cal_venue',
-                                wrap_text(content['ceremony']['venue'], 24),
+                                wrap_text(ceremony['venue'], 24),
                                 body_font, int(cfg['venue_size_px']), color)
         venue.set_justification(Gimp.TextJustification.CENTER)
-        center_layer_at(venue, cx, py + int(ph * y_pct))
-        y_pct += 0.06
-    if content['ceremony'].get('address'):
+        blocks.append(('layer', venue))
+    if ceremony.get('address'):
         addr = make_text_layer(image, parent, 'cal_addr',
-                               wrap_text(content['ceremony']['address'], 26),
+                               wrap_text(ceremony['address'], 26),
                                body_font, int(cfg['address_size_px']), color)
         addr.set_justification(Gimp.TextJustification.CENTER)
-        center_layer_at(addr, cx, py + int(ph * y_pct))
+        blocks.append(('layer', addr))
+
+    heights = [b[1].get_height() if b[0] == 'layer' else b[1] for b in blocks]
+    tops = _distribute_tops(py, ph, inner, heights)
+    for b, t in zip(blocks, tops):
+        if b[0] == 'layer':
+            b[1].set_offsets(cx - b[1].get_width() // 2, int(t))
+        else:
+            shim_invite = {'save_the_date': {'year': year, 'month': month,
+                                             'highlighted_day': int(content['date']['day'])}}
+            calendar_module.draw_calendar(
+                image, _shim_calendar_layout(layout, cal_cfg), shim_invite,
+                {'save_the_date': panel_rects[panel]},
+                {'save_the_date': panel_groups[panel]}, grid_top=int(t))
 
 
 def _shim_calendar_layout(layout, calendar_cfg):
@@ -297,6 +310,33 @@ def _draw_back_cover_logo(image, layout, cfg, content, panel_rects, panel_groups
     layer.set_offsets(px + (pw - new_w) // 2, py + (ph - new_h) // 2)
 
 
+# ============================================================ vertical layout
+def _distribute_tops(py, ph, inner, heights):
+    """Top-y for each block so the gaps BETWEEN blocks and to the top/bottom
+    inner margins are all equal (space-evenly). Keeps every panel visually
+    balanced regardless of how much text each block holds."""
+    avail = ph - 2 * inner
+    n = len(heights)
+    gap = (avail - sum(heights)) / (n + 1) if n else 0
+    tops, y = [], py + inner + gap
+    for h in heights:
+        tops.append(y)
+        y += h + gap
+    return tops
+
+
+def _place_centered(layers, tops, cx):
+    for layer, t in zip(layers, tops):
+        layer.set_offsets(cx - layer.get_width() // 2, int(t))
+
+
+def _palette_block_height(palette_cfg, names, label_size_px, label_y_offset_px=50):
+    """Height of a palette unit: swatch diameter + gap + (1 or 2)-line labels."""
+    radius = int(palette_cfg['circle_radius_px'])
+    lines = 2 if any(' ' in n for n in names) else 1
+    return 2 * radius + int(label_y_offset_px) + int(lines * label_size_px * 1.3)
+
+
 # ============================================================ interno blocks
 def draw_mission_block(image, layout, content, panel_rects, panel_groups):
     cfg = layout['interno']['back_cover']
@@ -304,6 +344,7 @@ def draw_mission_block(image, layout, content, panel_rects, panel_groups):
     px, py, pw, ph = panel_rects[panel]
     parent = panel_groups[panel]
     cx = px + pw // 2
+    inner = int(layout['borders']['inner_margin_px'])
     color = make_color(layout['text_color'])
 
     title_font = resolve_font(layout, 'script_bold')
@@ -311,49 +352,45 @@ def draw_mission_block(image, layout, content, panel_rects, panel_groups):
     body_font = resolve_font(layout, 'serif')
 
     mission = content['mission']
+    layers = []
 
     title = make_text_layer(image, parent, 'mission_title', mission['title'],
                             title_font, int(cfg['title_size_px']), color)
-    center_layer_at(title, cx, py + int(ph * 0.10))
+    title.set_justification(Gimp.TextJustification.CENTER)
+    layers.append(title)
 
-    body_top = py + int(ph * 0.20)
-    body_bottom = body_top
     body_text = (mission.get('body') or '').strip()
     if body_text:
         body = make_text_layer(image, parent, 'mission_body',
                                wrap_text(body_text, int(cfg['body_wrap_chars'])),
                                body_font, int(cfg['body_size_px']), color)
         body.set_justification(Gimp.TextJustification.CENTER)
-        body.set_offsets(cx - body.get_width() // 2, body_top)
-        body_bottom = body_top + body.get_height()
+        layers.append(body)
 
-    # optional highlighted call-to-action ("Aceita ser nosso Pajem?"), rendered
-    # larger in the script-bold face for emphasis
+    # optional highlighted call-to-action ("Aceita ser nosso Pajem?")
     highlight = (mission.get('highlight') or '').strip()
     if highlight:
-        hl_size = int(cfg.get('highlight_size_px', 60))
         hl = make_text_layer(image, parent, 'mission_highlight',
                              wrap_text(highlight, int(cfg.get('highlight_wrap_chars', 16))),
-                             title_font, hl_size, color)
+                             title_font, int(cfg.get('highlight_size_px', 60)), color)
         hl.set_justification(Gimp.TextJustification.CENTER)
-        hl_top = body_bottom + 70
-        hl.set_offsets(cx - hl.get_width() // 2, hl_top)
-        body_bottom = hl_top + hl.get_height()
+        layers.append(hl)
 
     verse = mission.get('verse') or {}
     if verse.get('text'):
-        v_top = body_bottom + 130
         v_layer = make_text_layer(image, parent, 'mission_verse',
                                    wrap_text(verse['text'], int(cfg['verse_wrap_chars'])),
                                    script_font, int(cfg['verse_size_px']), color)
         v_layer.set_justification(Gimp.TextJustification.CENTER)
-        v_layer.set_offsets(cx - v_layer.get_width() // 2, v_top)
-        v_bottom = v_top + v_layer.get_height()
+        layers.append(v_layer)
         if verse.get('reference'):
-            ref = make_text_layer(image, parent, 'mission_ref',
-                                   verse['reference'],
+            ref = make_text_layer(image, parent, 'mission_ref', verse['reference'],
                                    body_font, int(cfg['ref_size_px']), color)
-            ref.set_offsets(cx - ref.get_width() // 2, v_bottom + 50)
+            ref.set_justification(Gimp.TextJustification.CENTER)
+            layers.append(ref)
+
+    tops = _distribute_tops(py, ph, inner, [l.get_height() for l in layers])
+    _place_centered(layers, tops, cx)
 
 
 def draw_tips_block(image, layout, content, panel_rects, panel_groups):
@@ -367,16 +404,18 @@ def draw_tips_block(image, layout, content, panel_rects, panel_groups):
     title_font = resolve_font(layout, 'script_bold')
     body_font = resolve_font(layout, 'serif')
 
+    inner = int(layout['borders']['inner_margin_px'])
     tips = content['tips']
     title = make_text_layer(image, parent, 'tips_title', tips['title'],
                             title_font, int(cfg['title_size_px']), color)
-    center_layer_at(title, cx, py + int(ph * 0.10))
+    title.set_justification(Gimp.TextJustification.CENTER)
 
     items = tips.get('items') or []
     if not items:
+        tops = _distribute_tops(py, ph, inner, [title.get_height()])
+        _place_centered([title], tops, cx)
         return
 
-    inner = int(layout['borders']['inner_margin_px'])
     icon_size = int(cfg['icon_size_px'])
     text_padding = 80
     text_w = pw - 2 * (inner + text_padding)
@@ -384,9 +423,6 @@ def draw_tips_block(image, layout, content, panel_rects, panel_groups):
     # keep the wrap width in sync so a larger tips body doesn't overrun the panel.
     avg_glyph_px = max(1.0, int(cfg['body_size_px']) * 0.45)
     chars_per_line = max(14, int(text_w / avg_glyph_px))
-
-    block_top = py + int(ph * 0.20)
-    block_bottom = py + ph - inner - 40
     icon_text_gap = 20
 
     units = []
@@ -402,33 +438,34 @@ def draw_tips_block(image, layout, content, panel_rects, panel_groups):
         unit_h = icon_size + icon_text_gap + text_layer.get_height()
         units.append({'icon': icon_layer, 'text': text_layer, 'h': unit_h})
 
-    total_h = sum(u['h'] for u in units)
-    n = len(units)
-    available = block_bottom - block_top
-    gap_between = (available - total_h) / (n - 1) if n > 1 else 0
-
-    y = block_top
-    for u in units:
+    # title + each icon/text unit share equal gaps down the whole panel
+    heights = [title.get_height()] + [u['h'] for u in units]
+    tops = _distribute_tops(py, ph, inner, heights)
+    title.set_offsets(cx - title.get_width() // 2, int(tops[0]))
+    for u, t in zip(units, tops[1:]):
         if u['icon'] is not None:
-            u['icon'].set_offsets(cx - icon_size // 2, int(y))
+            u['icon'].set_offsets(cx - icon_size // 2, int(t))
         tw = u['text'].get_width()
-        u['text'].set_offsets(cx - tw // 2,
-                              int(y + icon_size + icon_text_gap))
-        y += u['h'] + gap_between
+        u['text'].set_offsets(cx - tw // 2, int(t + icon_size + icon_text_gap))
 
 
 # ============================================================ palette helper
 def draw_palette_with_labels(image, layout, panel_rects, panel_groups, *,
-                              colors, names, panel_name, y_factor,
+                              colors, names, panel_name, y_factor=None,
+                              circle_cy=None,
                               palette_cfg, label_size_px, label_y_offset_px=50,
                               layer_prefix='pal'):
     """Render N circles + a name below each.
 
     panel_name      : key into panel_rects/panel_groups for the host panel
     y_factor        : 0..1 — vertical center of the circles within the panel
+    circle_cy       : absolute swatch-center y (overrides y_factor when given)
     palette_cfg     : {circle_radius_px, circle_spacing_px}
     label_size_px   : font size of the color names
     """
+    _px, _py, _pw, _ph = panel_rects[panel_name]
+    if circle_cy is not None:
+        y_factor = (circle_cy - _py) / float(_ph)
     shim_layout = {
         'panels': {'madrinha': {'palette': palette_cfg}},
         'borders': layout['borders'],
@@ -517,9 +554,8 @@ def run_variants(layout, content, bg_path, output_dir, module_name, variant_orde
         for side in ('externo', 'interno'):
             image, panel_rects, panel_groups = prepare_image(layout, bg_path, vc, inputs_dir)
             if side == 'externo':
-                draw_externo(image, layout, vc, panel_rects, panel_groups, inputs_dir)
-                draw_cover_image(image, layout, vc, panel_rects, panel_groups,
-                                 inputs_dir, variant)
+                draw_externo(image, layout, vc, panel_rects, panel_groups,
+                             inputs_dir, variant)
             else:
                 draw_mission_block(image, layout, vc, panel_rects, panel_groups)
                 if split:
@@ -535,13 +571,12 @@ def run_variants(layout, content, bg_path, output_dir, module_name, variant_orde
     return out
 
 
-def draw_cover_image(image, layout, content, panel_rects, panel_groups,
-                     inputs_dir=None, variant=None):
-    """Optional cover illustration at the top of the front_cover panel.
+def _load_cover_art(image, layout, content, panel_rects, panel_groups,
+                    inputs_dir=None, variant=None):
+    """Load + scale the optional cover illustration; return the layer
+    (unpositioned, so _draw_cover can place it in the even distribution) or None.
 
-    Source priority: inputs/<variant>.png (user override) > content.cover.image
-    (repo-relative path). Size is scaled to the available area times
-    content.images.cover_pct (0..1, clamped). No-op if neither source exists.
+    Source priority: inputs/<variant>.png (user override) > content.cover.image.
     """
     override = _input_png(inputs_dir, '{}.png'.format(variant)) if variant else None
     if override:
@@ -549,12 +584,12 @@ def draw_cover_image(image, layout, content, panel_rects, panel_groups,
     else:
         rel = (content.get('cover') or {}).get('image')
         if not rel:
-            return
+            return None
         path = _REPO_ROOT / rel
         if not path.exists():
             print('[bridal_party] cover art slot empty — drop {} or inputs/{}.png'
                   .format(path, variant))
-            return
+            return None
     panel = 'front_cover'
     px, py, pw, ph = panel_rects[panel]
     parent = panel_groups[panel]
@@ -563,35 +598,38 @@ def draw_cover_image(image, layout, content, panel_rects, panel_groups,
                                      Gio.File.new_for_path(str(path)))
     except Exception as e:
         print('[bridal_party] failed cover art {}: {}'.format(path, e))
-        return
+        return None
     image.insert_layer(layer, parent, 0)
     layer.set_name('cover_art')
     inner = int(layout['borders']['inner_margin_px'])
     cw, chh = layer.get_width(), layer.get_height()
     if not cw or not chh:
-        return
+        return None
     pct = _clamp_pct((content.get('images') or {}).get('cover_pct', 1.0))
     avail_w, avail_h = (pw - 2 * inner) * pct, ph * 0.34 * pct
     scale = min(avail_w / float(cw), avail_h / float(chh))
-    new_w, new_h = max(1, int(cw * scale)), max(1, int(chh * scale))
-    layer.scale(new_w, new_h, False)
-    layer.set_offsets(px + (pw - new_w) // 2, py + inner + int(ph * 0.02))
+    layer.scale(max(1, int(cw * scale)), max(1, int(chh * scale)), False)
+    return layer
 
 
 def draw_role_center(image, layout, content, variant, panel_rects, panel_groups):
-    """Single-role interno center: title + body + palette subtitle + swatches."""
+    """Single-role interno center: title + body + palette subtitle + swatches,
+    distributed evenly down the panel."""
     cfg = layout['interno']['middle']['single']
     px, py, pw, ph = panel_rects['middle']
     parent = panel_groups['middle']
     cx = px + pw // 2
+    inner = int(layout['borders']['inner_margin_px'])
     color = make_color(layout['text_color'])
     title_font = resolve_font(layout, 'script_bold')
     body_font = resolve_font(layout, 'serif')
-
     role = content['role']
+
+    layers = []
     title = make_text_layer(image, parent, 'role_title', role['title'],
                             title_font, int(cfg['role_title_size_px']), color)
-    center_layer_at(title, cx, py + int(ph * 0.13))
+    title.set_justification(Gimp.TextJustification.CENTER)
+    layers.append(title)
 
     body_text = role.get('body') or ''
     if body_text:
@@ -601,68 +639,79 @@ def draw_role_center(image, layout, content, variant, panel_rects, panel_groups)
         body = make_text_layer(image, parent, 'role_body', wrapped,
                                body_font, int(cfg['body_size_px']), color)
         body.set_justification(Gimp.TextJustification.CENTER)
-        center_layer_at(body, cx, py + int(ph * 0.40))
+        layers.append(body)
 
     subtitle = make_text_layer(image, parent, 'palette_subtitle',
                                role['palette_subtitle'], body_font,
                                int(cfg['palette_subtitle_size_px']), color)
-    center_layer_at(subtitle, cx, py + int(ph * 0.66))
+    subtitle.set_justification(Gimp.TextJustification.CENTER)
+    layers.append(subtitle)
 
+    pal_h = _palette_block_height(cfg['palette'], role['color_names'],
+                                  int(cfg['color_label_size_px']))
+    tops = _distribute_tops(py, ph, inner,
+                            [l.get_height() for l in layers] + [pal_h])
+    _place_centered(layers, tops[:-1], cx)
+
+    radius = int(cfg['palette']['circle_radius_px'])
     draw_palette_with_labels(
         image, layout, panel_rects, panel_groups,
         colors=role['colors'], names=role['color_names'],
-        panel_name='middle', y_factor=0.78, palette_cfg=cfg['palette'],
+        panel_name='middle', circle_cy=int(tops[-1]) + radius,
+        palette_cfg=cfg['palette'],
         label_size_px=cfg['color_label_size_px'], layer_prefix=variant)
 
 
 def draw_split_center(image, layout, content, panel_rects, panel_groups):
-    """Split interno center (couple): stacked groomsman + bridesmaid sections."""
+    """Split interno center (couple): overall title + two sections (each a
+    title + body + palette), all distributed evenly down the panel."""
     cfg = layout['interno']['middle']['split']
+    pal_cfg = cfg['palette']
     px, py, pw, ph = panel_rects['middle']
     parent = panel_groups['middle']
     cx = px + pw // 2
+    inner = int(layout['borders']['inner_margin_px'])
     color = make_color(layout['text_color'])
     title_font = resolve_font(layout, 'script_bold')
     body_font = resolve_font(layout, 'serif')
-
     roles = content['roles']
-    overall = make_text_layer(image, parent, 'couple_title',
-                              roles['overall_title'], title_font,
-                              int(cfg['overall_title_size_px']), color)
-    inner_margin = int(layout['borders']['inner_margin_px'])
-    overall.set_offsets(cx - overall.get_width() // 2,
-                        py + inner_margin + int(cfg['overall_title_y_top_offset_px']))
+
+    # build the ordered block list; palette entries carry a computed height
+    blocks = []  # ('text', layer) | ('palette', role, prefix, height)
+    overall = make_text_layer(image, parent, 'couple_title', roles['overall_title'],
+                              title_font, int(cfg['overall_title_size_px']), color)
+    overall.set_justification(Gimp.TextJustification.CENTER)
+    blocks.append(('text', overall))
 
     for key, prefix in (('groomsman', 'cpl_groomsman'),
                         ('bridesmaid', 'cpl_bridesmaid')):
-        _draw_section(image, parent, layout, panel_rects, panel_groups,
-                      role=roles[key], layer_prefix=prefix,
-                      title_y_factor=float(cfg['{}_title_y_factor'.format(key)]),
-                      body_y_factor=float(cfg['{}_body_y_factor'.format(key)]),
-                      palette_y_factor=float(cfg['{}_palette_y_factor'.format(key)]),
-                      cfg=cfg, color=color, cx=cx, py=py, ph=ph,
-                      title_font=title_font, body_font=body_font)
+        role = roles[key]
+        title = make_text_layer(image, parent, '{}_title'.format(prefix),
+                                role['title'], title_font,
+                                int(cfg['section_title_size_px']), color)
+        title.set_justification(Gimp.TextJustification.CENTER)
+        blocks.append(('text', title))
+        if role.get('body'):
+            body = make_text_layer(image, parent, '{}_body'.format(prefix),
+                                   wrap_text(role['body'], int(cfg['body_wrap_chars'])),
+                                   body_font, int(cfg['body_size_px']), color)
+            body.set_justification(Gimp.TextJustification.CENTER)
+            blocks.append(('text', body))
+        pal_h = _palette_block_height(pal_cfg, role['color_names'],
+                                      int(cfg['color_label_size_px']), 45)
+        blocks.append(('palette', role, prefix, pal_h))
 
-
-def _draw_section(image, parent, layout, panel_rects, panel_groups, *,
-                  role, layer_prefix, title_y_factor, body_y_factor,
-                  palette_y_factor, cfg, color, cx, py, ph,
-                  title_font, body_font):
-    title = make_text_layer(image, parent, '{}_title'.format(layer_prefix),
-                            role['title'], title_font,
-                            int(cfg['section_title_size_px']), color)
-    center_layer_at(title, cx, py + int(ph * title_y_factor))
-
-    if role.get('body'):
-        body = make_text_layer(image, parent, '{}_body'.format(layer_prefix),
-                               wrap_text(role['body'], int(cfg['body_wrap_chars'])),
-                               body_font, int(cfg['body_size_px']), color)
-        body.set_justification(Gimp.TextJustification.CENTER)
-        center_layer_at(body, cx, py + int(ph * body_y_factor))
-
-    draw_palette_with_labels(
-        image, layout, panel_rects, panel_groups,
-        colors=role['colors'], names=role['color_names'],
-        panel_name='middle', y_factor=palette_y_factor, palette_cfg=cfg['palette'],
-        label_size_px=cfg['color_label_size_px'], label_y_offset_px=45,
-        layer_prefix=layer_prefix)
+    heights = [b[1].get_height() if b[0] == 'text' else b[3] for b in blocks]
+    tops = _distribute_tops(py, ph, inner, heights)
+    radius = int(pal_cfg['circle_radius_px'])
+    for b, t in zip(blocks, tops):
+        if b[0] == 'text':
+            b[1].set_offsets(cx - b[1].get_width() // 2, int(t))
+        else:
+            _, role, prefix, _ = b
+            draw_palette_with_labels(
+                image, layout, panel_rects, panel_groups,
+                colors=role['colors'], names=role['color_names'],
+                panel_name='middle', circle_cy=int(t) + radius, palette_cfg=pal_cfg,
+                label_size_px=cfg['color_label_size_px'], label_y_offset_px=45,
+                layer_prefix=prefix)

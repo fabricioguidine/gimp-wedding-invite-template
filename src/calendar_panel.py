@@ -17,8 +17,17 @@ from document import make_color
 from text_utils import resolve_font, make_text_layer, center_layer_at
 
 
-def draw_calendar(image, layout, invite, panel_rects, panel_groups):
-    """Desenha o calendário dentro do painel save_the_date."""
+def grid_height(year, month, cell_size):
+    """Altura em px do grid (cabeçalho + semanas) — pra layout externo."""
+    weeks = _cal.Calendar(firstweekday=_cal.SUNDAY).monthdayscalendar(year, month)
+    return (1 + len(weeks)) * int(cell_size)
+
+
+def draw_calendar(image, layout, invite, panel_rects, panel_groups, grid_top=None):
+    """Desenha o calendário dentro do painel save_the_date.
+
+    grid_top: quando dado, fixa o topo do grid (px absoluto) em vez de centralizar.
+    """
     panel_name = 'save_the_date'
     if panel_name not in panel_rects:
         raise RuntimeError("Painel '{}' não está na ordem configurada".format(panel_name))
@@ -50,7 +59,7 @@ def draw_calendar(image, layout, invite, panel_rects, panel_groups):
     # Centralizado horizontalmente; verticalmente um pouco abaixo do meio
     # (espaço acima vai virar título "Save the Date" na Fase 5)
     grid_x = px + (pw - grid_w) // 2
-    grid_y = py + (ph - grid_h) // 2 + int(ph * 0.05)
+    grid_y = int(grid_top) if grid_top is not None else py + (ph - grid_h) // 2 + int(ph * 0.05)
 
     serif_font = resolve_font(layout, 'serif')
     text_color = make_color(layout['borders']['color'])
