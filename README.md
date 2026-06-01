@@ -2,7 +2,7 @@
 
 <img src=".github/assets/banner.svg" alt="gimp-wedding-invite-template" width="100%">
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-a371f7.svg)](LICENSE) [![Python 3.13](https://img.shields.io/badge/Python-3.13-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/) [![Platform: Windows](https://img.shields.io/badge/Platform-Windows-0078D6.svg?logo=windows&logoColor=white)](#requirements) [![GIMP 3.2](https://img.shields.io/badge/GIMP-3.2-5C5543.svg?logo=gimp&logoColor=white)](https://www.gimp.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-a371f7.svg)](LICENSE) [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/) [![Platform: Linux | macOS | Windows](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20Windows-44cc11.svg)](#requirements) [![GIMP 3.2](https://img.shields.io/badge/GIMP-3.2-5C5543.svg?logo=gimp&logoColor=white)](https://www.gimp.org/)
 
 </div>
 
@@ -110,17 +110,36 @@ All renders below are the committed `template/` files — **English placeholder 
 
 ## Requirements
 
-- Windows 11, PowerShell 7
-- **GIMP 3.2.4** at `C:\Users\fabri\AppData\Local\Programs\GIMP 3\bin\gimp-console-3.2.exe`
-- **Python 3.13** on the system PATH (for `pyyaml`, `questionary`, and `tui.py`)
-- The GIMP-embedded Python is invoked separately by `gimp-console-3.2.exe` and only needs the standard library + `gi.repository.Gimp`.
+The project is **cross-platform** (Linux, macOS, Windows). Two separate Pythons are involved:
 
+- **Host Python ≥ 3.11** on `PATH` — runs `tui.py` (needs `PyYAML`, optionally `questionary`).
+- **GIMP 3.2** — only needed to actually *render* the artwork (XCF/PNG/PDF). Its embedded Python is invoked separately by `gimp-console` and only needs the standard library + `gi.repository.Gimp`. The headless geometry/preparation pipeline and the whole test suite run **without GIMP**.
+
+The TUI locates `gimp-console` automatically: it honours the `WEDDING_GIMP_EXE` environment variable, then falls back to a binary on `PATH` (`gimp-console-3.2` / `gimp-console` / `gimp`), then to the per-OS default install location. Override it if GIMP lives elsewhere:
+
+```bash
+export WEDDING_GIMP_EXE="/opt/gimp/bin/gimp-console-3.2"   # Linux/macOS
+```
 ```powershell
-# One-time: install the host Python deps used by the TUI
-pip install pyyaml questionary
+$env:WEDDING_GIMP_EXE = "C:\Program Files\GIMP 3\bin\gimp-console-3.2.exe"   # Windows
 ```
 
-`pyyaml` is required; `questionary` is optional (it gives a nicer TUI, falling back to plain `input()` if missing).
+Install the host deps:
+
+```bash
+# Linux / macOS
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt          # PyYAML (runtime)
+pip install -r requirements-dev.txt       # + pytest, Pillow, questionary (dev/test)
+```
+```powershell
+# Windows (PowerShell)
+python -m venv .venv; .\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+```
+
+`PyYAML` is required; `questionary` is optional (nicer TUI, falls back to plain `input()` if missing).
 
 ## Usage
 
@@ -230,18 +249,28 @@ Installs **Cormorant Garamond** (regular / bold / italic / bold-italic) from Goo
 
 ## Tests
 
-```powershell
-pip install pytest
+The default suite is **pure-Python and runs on any OS without GIMP** — this is what CI exercises across Linux, macOS, and Windows on Python 3.11/3.12/3.13.
 
-# Static checks only (fast, no GIMP): module structure, YAML, schema, launcher
-pytest tests/test_structure.py tests/test_tui.py
+```bash
+pip install -r requirements-dev.txt
 
-# Everything, including end-to-end GIMP builds (slow; auto-skipped if GIMP
-# isn't installed — each test launches gimp-console)
+# Default: the headless suite (GIMP e2e is deselected automatically)
 pytest
+
+# Opt in to the slow GIMP end-to-end builds (requires GIMP on this machine)
+pytest -m e2e
 ```
 
-`tests/test_e2e.py` builds each module (and `--all`) for real and asserts the XCF/PNG/PDF artifacts exist, plus that a module still builds with an `inputs/logo.png` override present. `tests/test_a4_impose.py` unit-tests the pure A4 imposition geometry without GIMP.
+What the headless suite covers:
+
+- `tests/test_structure.py` — every active module has `build.py`/`content.yaml`/`layout.yaml`, valid YAML, and a sane layout/variant schema.
+- `tests/test_a4_impose.py`, `tests/test_paper.py`, `tests/test_panels.py` — the pure A4-imposition, print-paper, and tri-fold panel geometry.
+- `tests/test_tui.py` — launcher logic (type coercion, module discovery, the YAML→JSON bridge, run preparation) with no GIMP.
+- `tests/test_e2e_headless.py` — end-to-end through the real headless entrypoints: the A4 imposition pipeline on a real tri-fold canvas, `tui._prepare_run` snapshotting substituted couple names + dates into the reproducible JSON/YAML bridge artifacts, and a real `tui.py` CLI subprocess invocation.
+
+GIMP-gated (not run in CI, marked `e2e`):
+
+- `tests/test_e2e.py` — launches a real `gimp-console` to build each module (and `--all`) and asserts the XCF/PNG/PDF artifacts exist, plus an `inputs/logo.png` override path. Slow, host-dependent, and auto-skipped when no `gimp-console` is found.
 
 ## License
 

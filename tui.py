@@ -23,6 +23,7 @@ import argparse
 import datetime as _dt
 import json
 import os
+import platform
 import shutil
 import subprocess
 import sys
@@ -31,6 +32,15 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+
+# Console may default to a non-UTF-8 codepage (e.g. cp1252 on Windows); the
+# module/run names and verse text are Unicode. Guarded so it's a no-op on
+# streams that don't support reconfigure (older Pythons, redirected pipes).
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding='utf-8')
+    except (AttributeError, ValueError):
+        pass
 
 try:
     import questionary
@@ -41,7 +51,33 @@ except ImportError:
 REPO_ROOT = Path(__file__).resolve().parent
 MODULES_ROOT = REPO_ROOT / 'modules'
 SRC_DIR = REPO_ROOT / 'src'
-GIMP_EXE = Path(r'C:\Users\fabri\AppData\Local\Programs\GIMP 3\bin\gimp-console-3.2.exe')
+
+
+def _discover_gimp_exe() -> Path:
+    """Locate gimp-console across platforms.
+
+    Priority: WEDDING_GIMP_EXE env override -> a console binary on PATH ->
+    the per-OS default install location. GIMP itself is never run in CI, so on
+    a machine without it this simply resolves to a non-existent path and the
+    e2e build is skipped.
+    """
+    override = os.environ.get('WEDDING_GIMP_EXE')
+    if override:
+        return Path(override)
+    for name in ('gimp-console-3.2', 'gimp-console', 'gimp'):
+        found = shutil.which(name)
+        if found:
+            return Path(found)
+    system = platform.system()
+    if system == 'Windows':
+        return Path(os.environ.get('LOCALAPPDATA', r'C:\Users\Public')) \
+            / 'Programs' / 'GIMP 3' / 'bin' / 'gimp-console-3.2.exe'
+    if system == 'Darwin':
+        return Path('/Applications/GIMP.app/Contents/MacOS/gimp-console')
+    return Path('/usr/bin/gimp-console-3.2')
+
+
+GIMP_EXE = _discover_gimp_exe()
 
 
 # ----------------------------------------------------------------- ui helpers

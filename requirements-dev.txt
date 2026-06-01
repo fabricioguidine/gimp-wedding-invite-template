@@ -1,0 +1,5 @@
+-r requirements.txt
+# Test + optional-TUI dependencies.
+pytest>=8.0
+Pillow>=10.0
+questionary>=2.0
